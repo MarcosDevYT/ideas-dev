@@ -6,10 +6,17 @@ declare module "next-auth" {
    */
   interface Session {
     user: {
-      /** The user's postal address. */
       id: string;
       emailVerified: Date | null;
-      role?: string;
+      // User configuration
+      role?: string | null;
+      stack: string[];
+      // Credits
+      credits: number;
+      isAdmin: boolean;
+      // Statistics
+      ideaChatsCount: number;
+      projectsCount: number;
     } & DefaultSession["user"];
   }
 }
@@ -17,9 +24,16 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   /** Returned by the `jwt` callback and `getToken`, when using JWT sessions */
   interface JWT {
-    /** OpenID ID Token */
     sub: string;
     emailVerified?: Date | null;
-    role?: string;
+    // User configuration
+    role?: string | null;
+    stack?: string[];
+    // Credits
+    credits?: number;
+    isAdmin?: boolean;
+    // Statistics
+    ideaChatsCount?: number;
+    projectsCount?: number;
   }
 }

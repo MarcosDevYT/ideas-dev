@@ -1,10 +1,15 @@
 import { auth } from "@/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ui/theme-provider";
-import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { JetBrains_Mono, Plus_Jakarta_Sans, Syne } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import type { Metadata } from "next";
 import "./globals.css";
+
+const syne = Syne({
+  variable: "--font-syne",
+  subsets: ["latin"],
+});
 
 const sans = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -36,7 +41,7 @@ export default async function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body
-        className={`${sans.variable} ${mono.variable} font-sans antialiased`}
+        className={`${sans.variable} ${mono.variable} ${syne.variable} font-sans antialiased`}
       >
         <ThemeProvider
           attribute="class"

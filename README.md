@@ -1,3 +1,5 @@
+Quiero que hagas un recorrido durante todo el proyecto cada vez que se pide algo que se gasta un credito, se elimina un chat, se cambia el nombre o todo lo ques
+
 # Sistema de Autenticación Reutilizable
 
 Este es un sistema de autenticación básico y reutilizable construido con:

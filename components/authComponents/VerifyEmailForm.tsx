@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { LogoComponent } from "../LogoComponent";
 
 interface VerifyEmailFormProps {
   email: string;
@@ -40,15 +41,13 @@ export function VerifyEmailForm({
   // Estado: Error Inicial o Error de Verificación
   if (error) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex h-screen pt-16 items-center justify-center bg-background">
         <Card className="w-full max-w-lg shadow-lg border border-border">
           <CardHeader className="flex flex-col items-center gap-2">
-            <h1 className="text-3xl font-extrabold tracking-tight text-primary text-center mb-1">
-              IdeasDev
-            </h1>
-            <span className="text-xs font-semibold text-secondary-foreground bg-secondary rounded-full px-3 py-1 mb-2">
+            <span className="text-xs font-semibold text-secondary-foreground bg-secondary rounded-full px-3 py-1">
               Verificar Email
             </span>
+            <LogoComponent className="text-4xl mb-2" />
           </CardHeader>
           <CardContent className="space-y-6 flex flex-col items-center justify-center">
             <div className="flex flex-col items-center justify-center gap-3 bg-destructive/10 border border-destructive rounded-lg p-6 w-full">
@@ -76,15 +75,13 @@ export function VerifyEmailForm({
   // Estado: Éxito
   if (success) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div className="flex h-screen pt-16 items-center justify-center bg-background">
         <Card className="w-full max-w-lg shadow-lg border border-border">
           <CardHeader className="flex flex-col items-center gap-2">
-            <h1 className="text-3xl font-extrabold tracking-tight text-primary text-center mb-1">
-              IdeasDev
-            </h1>
-            <span className="text-xs font-semibold text-secondary-foreground bg-secondary rounded-full px-3 py-1 mb-2">
+            <span className="text-xs font-semibold text-secondary-foreground bg-secondary rounded-full px-3 py-1">
               Verificar Email
             </span>
+            <LogoComponent className="text-4xl mb-2" />
           </CardHeader>
           <CardContent className="space-y-6 flex flex-col items-center justify-center">
             <div className="flex flex-col items-center justify-center gap-3 bg-green-500/10 border border-green-500 rounded-lg p-6 w-full">
@@ -110,15 +107,13 @@ export function VerifyEmailForm({
 
   // Estado: Formulario de Verificación (Inicial)
   return (
-    <div className="flex h-screen items-center justify-center bg-background">
+    <div className="flex h-screen pt-16 items-center justify-center bg-background">
       <Card className="w-full max-w-lg shadow-lg border border-border">
         <CardHeader className="flex flex-col items-center gap-2">
-          <h1 className="text-3xl font-extrabold tracking-tight text-primary text-center mb-1">
-            IdeasDev
-          </h1>
-          <span className="text-xs font-semibold text-secondary-foreground bg-secondary rounded-full px-3 py-1 mb-2">
+          <span className="text-xs font-semibold text-secondary-foreground bg-secondary rounded-full px-3 py-1">
             Verificar Email
           </span>
+          <LogoComponent className="text-4xl mb-2" />
         </CardHeader>
         <CardContent className="space-y-6 flex flex-col items-center justify-center text-center">
           <p>Por favor confirma tu correo electrónico: {email}</p>

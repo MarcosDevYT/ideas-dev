@@ -75,13 +75,18 @@ export const registerAction = async (
     // Hash de la contraseña
     const passwordHash = await bcrypt.hash(data.password, 10);
 
-    await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         name: data.name,
         email: data.email,
         password: passwordHash,
       },
     });
+
+    // Initialize credits for the new user
+    const { initializeUserCredits } =
+      await import("@/lib/services/credit-service");
+    await initializeUserCredits(newUser.id);
 
     // Hacemos el login con los datos del formulario utilizando next-auth
     await signIn("credentials", {

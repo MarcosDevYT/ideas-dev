@@ -45,9 +45,26 @@ model User {
   email               String?   @unique
   emailVerified       DateTime? @map("email_verified")
   image               String?
+  
+  // IdeasDev specific fields
+  stack               String[]  @default([]) // Stack tecnológico preferido (array de tecnologías)
+  role                String?   // Rol del usuario
+  credits             Int       @default(100) // Créditos disponibles
+  creditsResetAt      DateTime  @default(now()) @map("credits_reset_at") // Última recarga de créditos
+  isAdmin             Boolean   @default(false) @map("is_admin") // Si es administrador
+  
   accounts            Account[]
   sessions            Session[]
   passwordResetToken  PasswordResetToken[]
+  
+  // IdeasDev relations
+  ideaChats           IdeaChat[]
+  projects            Project[]
+  creditTransactions  CreditTransaction[]
+  subscription        Subscription?
+  bugReports          BugReport[]
+
+  createdAt DateTime @default(now())
 
   @@map("users")
 }
@@ -70,4 +87,142 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+// ============================================
+// IdeasDev Models
+// ============================================
+
+model Subscription {
+  id                    String    @id @default(cuid())
+  userId                String    @unique @map("user_id")
+  stripeCustomerId      String    @unique @map("stripe_customer_id")
+  stripeSubscriptionId  String?   @unique @map("stripe_subscription_id")
+  stripePriceId         String?   @map("stripe_price_id")
+  status                String    // active, canceled, past_due, incomplete, trialing
+  currentPeriodEnd      DateTime? @map("current_period_end")
+  
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@map("subscriptions")
+}
+
+model IdeaChat {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  title       String    @default("Nuevo Chat")
+  isPinned    Boolean   @default(false) @map("is_pinned")
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    Message[]
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, updatedAt])
+  @@map("idea_chats")
+}
+
+model Project {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  title       String
+  description String?   @db.Text
+  stack       String?   // Stack sugerido para el proyecto
+  aiSummary   String?   @map("ai_summary") @db.Text // Resumen generado por IA
+  originalIdea Json?    @map("original_idea") // Estructura completa de la idea original
+  isPinned    Boolean   @default(false) @map("is_pinned")
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    Message[]
+  tasks       Task[]
+  resources   Resource[]
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, updatedAt])
+  @@map("projects")
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  projectId   String    @map("project_id")
+  title       String
+  status      String    @default("todo") // todo, in_progress, done
+  
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([projectId])
+  @@map("tasks")
+}
+
+model Resource {
+  id          String    @id @default(cuid())
+  projectId   String    @map("project_id")
+  title       String
+  url         String?
+  type        String    @default("link") // link, file, note
+  
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([projectId])
+  @@map("resources")
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  role        String    // system, user, assistant
+  content     String    @db.Text
+  
+  // Relación polimórfica: un mensaje pertenece a un IdeaChat O a un Project
+  ideaChatId  String?   @map("idea_chat_id")
+  projectId   String?   @map("project_id")
+  
+  ideaChat    IdeaChat? @relation(fields: [ideaChatId], references: [id], onDelete: Cascade)
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([ideaChatId, createdAt])
+  @@index([projectId, createdAt])
+  @@map("messages")
+}
+
+model CreditTransaction {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  amount      Int      // Cantidad de créditos (positivo para suma, negativo para resta)
+  type        String   // "PURCHASE", "MONTHLY_RESET", "ADMIN_ADJUSTMENT", "CONSUMPTION"
+  description String?  // Descripción opcional de la transacción
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("credit_transactions")
+}
+
+model BugReport {
+  id          String   @id @default(cuid())
+  userId      String?  @map("user_id") // Opcional para permitir reportes anónimos
+  title       String
+  description String   @db.Text
+  category    String   // "UI", "API", "Performance", "Other"
+  status      String   @default("OPEN") // "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("bug_reports")
 }

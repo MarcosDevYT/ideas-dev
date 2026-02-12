@@ -46,11 +46,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       const existingUser = await prisma.user.findUnique({
         where: { id: token.sub },
+        select: {
+          emailVerified: true,
+          role: true,
+          stack: true,
+          credits: true,
+          isAdmin: true,
+          _count: {
+            select: {
+              ideaChats: true,
+              projects: true,
+            },
+          },
+        },
       });
 
       if (!existingUser) return token;
 
+      // Basic fields
       token.emailVerified = existingUser.emailVerified;
+
+      // User configuration
+      token.role = existingUser.role;
+      token.stack = existingUser.stack;
+
+      // Credits
+      token.credits = existingUser.credits;
+      token.isAdmin = existingUser.isAdmin;
+
+      // Statistics
+      token.ideaChatsCount = existingUser._count.ideaChats;
+      token.projectsCount = existingUser._count.projects;
 
       return token;
     },
@@ -61,6 +87,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (session.user) {
         session.user.emailVerified = token.emailVerified as Date | null;
+
+        // User configuration
+        session.user.role = token.role as string | null | undefined;
+        session.user.stack = (token.stack as string[]) || [];
+
+        // Credits
+        session.user.credits = (token.credits as number) || 0;
+        session.user.isAdmin = (token.isAdmin as boolean) || false;
+
+        // Statistics
+        session.user.ideaChatsCount = (token.ideaChatsCount as number) || 0;
+        session.user.projectsCount = (token.projectsCount as number) || 0;
       }
 
       return session;

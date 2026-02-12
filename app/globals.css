@@ -6,32 +6,36 @@
 :root {
   --background: oklch(0.9842 0.0034 247.8575);
   --foreground: oklch(0.2077 0.0398 265.7549);
-  --card: oklch(1 0 0);
+  /* Card con mejor contraste - gris muy claro con tinte azul */
+  --card: oklch(0.97 0.008 250);
   --card-foreground: oklch(0.2077 0.0398 265.7549);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2077 0.0398 265.7549);
-  --primary: oklch(0.8972 0.1786 126.6652);
-  --primary-foreground: oklch(0.2741 0.0688 132.1089);
-  --secondary: oklch(0.8112 0.1013 293.5712);
-  --secondary-foreground: oklch(0.2827 0.1351 291.0894);
+  /* Primary más vibrante - verde brillante */
+  --primary: oklch(0.75 0.22 135);
+  --primary-foreground: oklch(0.98 0.01 135);
+  /* Secondary más vibrante - púrpura intenso */
+  --secondary: oklch(0.65 0.18 290);
+  --secondary-foreground: oklch(0.98 0.01 290);
   --muted: oklch(0.9683 0.0069 247.8956);
   --muted-foreground: oklch(0.5544 0.0407 257.4166);
-  --accent: oklch(0.9842 0.0034 247.8575);
+  /* Accent más visible - azul claro */
+  --accent: oklch(0.92 0.04 250);
   --accent-foreground: oklch(0.2077 0.0398 265.7549);
   --destructive: oklch(0.6368 0.2078 25.3313);
   --destructive-foreground: oklch(1 0 0);
   --border: oklch(0.9288 0.0126 255.5078);
   --input: oklch(0.9683 0.0069 247.8956);
   --ring: oklch(0.7681 0.2044 130.8498);
-  --chart-1: oklch(0.8972 0.1786 126.6652);
-  --chart-2: oklch(0.8112 0.1013 293.5712);
+  --chart-1: oklch(0.75 0.22 135);
+  --chart-2: oklch(0.65 0.18 290);
   --chart-3: oklch(0.2077 0.0398 265.7549);
   --chart-4: oklch(0.7107 0.0351 256.7878);
   --chart-5: oklch(0.9243 0.1151 95.7459);
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.2077 0.0398 265.7549);
-  --sidebar-primary: oklch(0.8972 0.1786 126.6652);
-  --sidebar-primary-foreground: oklch(0.2741 0.0688 132.1089);
+  --sidebar-primary: oklch(0.75 0.22 135);
+  --sidebar-primary-foreground: oklch(0.98 0.01 135);
   --sidebar-accent: oklch(0.9683 0.0069 247.8956);
   --sidebar-accent-foreground: oklch(0.2077 0.0398 265.7549);
   --sidebar-border: oklch(0.9288 0.0126 255.5078);
@@ -64,7 +68,7 @@
 }
 
 .dark {
-  --background: oklch(0.1448 0 0);
+  --background: #0a0a0a;
   --foreground: oklch(0.9842 0.0034 247.8575);
   --card: oklch(0.1822 0 0);
   --card-foreground: oklch(0.9842 0.0034 247.8575);
@@ -74,7 +78,7 @@
   --primary-foreground: oklch(0.2741 0.0688 132.1089);
   --secondary: oklch(0.8112 0.1013 293.5712);
   --secondary-foreground: oklch(0.2827 0.1351 291.0894);
-  --muted: oklch(0.2795 0.0368 260.031);
+  --muted: oklch(27.95% 0.03688 260.049);
   --muted-foreground: oklch(0.7107 0.0351 256.7878);
   --accent: oklch(0.2795 0.0368 260.031);
   --accent-foreground: oklch(0.9842 0.0034 247.8575);
@@ -157,6 +161,7 @@
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+  --font-syne: var(--font-syne);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -180,8 +185,44 @@
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
 }
 
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--accent);
+  border-radius: 10px;
+}
+
 body {
+  font-feature-settings:
+    "rlig" 1,
+    "calt" 1;
   letter-spacing: var(--tracking-normal);
+}
+
+/* Prose customization for markdown */
+.prose {
+  max-width: none;
+}
+
+.prose pre {
+  background-color: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 4px);
+}
+
+.prose code {
+  font-family: var(--font-mono);
+}
+
+.prose :where(code):not(:where([class~="not-prose"] *))::before,
+.prose :where(code):not(:where([class~="not-prose"] *))::after {
+  content: "";
 }
 
 @layer base {
@@ -191,4 +232,196 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.sheetScrollHeight {
+  height: 26vh;
+}
+
+.scrollHeight {
+  height: 30vh;
+}
+
+@media screen and (min-height: 400px) {
+  .scrollHeight {
+    height: 36vh;
+  }
+  .sheetScrollHeight {
+    height: 32vh;
+  }
+}
+
+@media screen and (min-height: 450px) {
+  .scrollHeight {
+    height: 38vh;
+  }
+  .sheetScrollHeight {
+    height: 38vh;
+  }
+}
+
+@media screen and (min-height: 500px) {
+  .scrollHeight {
+    height: 46vh;
+  }
+  .sheetScrollHeight {
+    height: 45vh;
+  }
+}
+
+@media screen and (min-height: 550px) {
+  .scrollHeight {
+    height: 54vh;
+  }
+  .sheetScrollHeight {
+    height: 48vh;
+  }
+}
+
+@media screen and (min-height: 600px) {
+  .scrollHeight {
+    height: 32vh;
+  }
+  .sheetScrollHeight {
+    height: 28vh;
+  }
+}
+
+@media screen and (min-height: 650px) {
+  .sheetScrollHeight {
+    height: 56vh;
+  }
+}
+
+@media screen and (min-height: 700px) {
+  .scrollHeight {
+    height: 64vh;
+  }
+  .sheetScrollHeight {
+    height: 59vh;
+  }
+}
+
+@media screen and (min-height: 750px) {
+  .scrollHeight {
+    height: 69vh;
+  }
+  .sheetScrollHeight {
+    height: 62vh;
+  }
+}
+
+/* Syntax Highlighting for Code Blocks */
+.hljs {
+  display: block;
+  overflow-x: auto;
+}
+
+/* Comments */
+.hljs-comment,
+.hljs-quote {
+  color: #6a9955;
+  font-style: italic;
+}
+
+/* Keywords, selectors, tags */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-tag,
+.hljs-name,
+.hljs-type {
+  color: #569cd6;
+  font-weight: 600;
+}
+
+/* Strings, attributes */
+.hljs-string,
+.hljs-attr,
+.hljs-attribute {
+  color: #ce9178;
+}
+
+/* Numbers, literals */
+.hljs-number,
+.hljs-literal,
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #b5cea8;
+}
+
+/* Functions, classes, methods */
+.hljs-function,
+.hljs-class,
+.hljs-title,
+.hljs-title.function,
+.hljs-title.class {
+  color: #dcdcaa;
+  font-weight: 500;
+}
+
+/* Variables, params */
+.hljs-variable,
+.hljs-params,
+.hljs-property {
+  color: #9cdcfe;
+}
+
+/* Operators, punctuation */
+.hljs-operator,
+.hljs-punctuation {
+  color: #d4d4d4;
+}
+
+/* Meta, doctags */
+.hljs-meta,
+.hljs-doctag {
+  color: #808080;
+}
+
+/* Regex, symbols */
+.hljs-regexp,
+.hljs-symbol {
+  color: #d16969;
+}
+
+/* Deletion, addition (for diffs) */
+.hljs-deletion {
+  background-color: rgba(255, 0, 0, 0.2);
+  color: #f14c4c;
+}
+
+.hljs-addition {
+  background-color: rgba(0, 255, 0, 0.2);
+  color: #89d185;
+}
+
+/* Emphasis */
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+/* Sections, headers */
+.hljs-section {
+  color: #569cd6;
+  font-weight: bold;
+}
+
+/* Links */
+.hljs-link {
+  color: #ce9178;
+  text-decoration: underline;
+}
+
+/* Bash/Shell specific */
+.hljs-built_in {
+  color: #4ec9b0;
+}
+
+/* JSON keys */
+.hljs-attr {
+  color: #9cdcfe;
 }
