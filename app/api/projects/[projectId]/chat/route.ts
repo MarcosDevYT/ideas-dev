@@ -13,9 +13,12 @@ const CHAT_COST = 10; // Créditos por mensaje
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { projectId: string } },
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
   try {
+    // Await params (Next.js 15 requirement)
+    const { projectId } = await params;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -34,7 +37,7 @@ export async function POST(
     // Verificar ownership del proyecto
     const project = await prisma.project.findUnique({
       where: {
-        id: params.projectId,
+        id: projectId,
         userId: session.user.id,
       },
       include: {
@@ -85,10 +88,13 @@ export async function POST(
     );
 
     // Preparar mensajes para la API
-    const messages = [
+    const messages: Array<{
+      role: "system" | "user" | "assistant";
+      content: string;
+    }> = [
       { role: "system", content: systemPrompt },
       ...project.messages.map((msg) => ({
-        role: msg.role,
+        role: msg.role as "user" | "assistant",
         content: msg.content,
       })),
       { role: "user", content: message },
@@ -97,55 +103,46 @@ export async function POST(
     // Guardar mensaje del usuario
     await prisma.message.create({
       data: {
-        projectId: params.projectId,
+        projectId: projectId,
         role: "user",
         content: message,
       },
     });
 
-    // Stream de respuesta
-    const stream = new ReadableStream({
-      async start(controller) {
-        let fullResponse = "";
+    // Obtener el stream de la IA
+    const aiStream = await streamProjectChat({ messages });
 
-        try {
-          await streamProjectChat(messages, {
-            onChunk: (chunk: string) => {
-              fullResponse += chunk;
-              controller.enqueue(new TextEncoder().encode(chunk));
-            },
-            onComplete: async () => {
-              // Guardar respuesta del asistente
-              await prisma.message.create({
-                data: {
-                  projectId: params.projectId,
-                  role: "assistant",
-                  content: fullResponse,
-                },
-              });
+    // Crear un TransformStream para capturar la respuesta completa
+    let fullResponse = "";
+    const transformStream = new TransformStream({
+      transform(chunk, controller) {
+        const text = new TextDecoder().decode(chunk);
+        fullResponse += text;
+        controller.enqueue(chunk);
+      },
+      async flush() {
+        // Guardar respuesta del asistente
+        await prisma.message.create({
+          data: {
+            projectId: projectId,
+            role: "assistant",
+            content: fullResponse,
+          },
+        });
 
-              // Consumir créditos
-              await consumeCredits(
-                session.user.id,
-                CHAT_COST,
-                `Chat en proyecto: ${project.title}`,
-              );
-
-              controller.close();
-            },
-            onError: (error: Error) => {
-              console.error("Streaming error:", error);
-              controller.error(error);
-            },
-          });
-        } catch (error) {
-          console.error("Error in stream:", error);
-          controller.error(error);
-        }
+        // Consumir créditos
+        await consumeCredits(
+          session.user.id,
+          CHAT_COST,
+          `Chat en proyecto: ${project.title}`,
+        );
       },
     });
 
-    return new NextResponse(stream, {
+    // Pipe el stream de la IA a través del transform
+    const outputStream = aiStream.pipeThrough(transformStream);
+
+    return new NextResponse(outputStream, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Transfer-Encoding": "chunked",

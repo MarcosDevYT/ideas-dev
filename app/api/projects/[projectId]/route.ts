@@ -8,8 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { projectId: string } },
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
+  const { projectId } = await params;
   try {
     const session = await auth();
 
@@ -19,7 +20,7 @@ export async function GET(
 
     const project = await prisma.project.findUnique({
       where: {
-        id: params.projectId,
+        id: projectId,
         userId: session.user.id, // Verificar ownership
       },
       include: {
@@ -58,8 +59,9 @@ export async function GET(
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { projectId: string } },
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
+  const { projectId } = await params;
   try {
     const session = await auth();
 
@@ -70,7 +72,7 @@ export async function PATCH(
     // Verificar ownership
     const existingProject = await prisma.project.findUnique({
       where: {
-        id: params.projectId,
+        id: projectId,
         userId: session.user.id,
       },
     });
@@ -115,7 +117,7 @@ export async function PATCH(
     }
 
     const project = await prisma.project.update({
-      where: { id: params.projectId },
+      where: { id: projectId },
       data: updateData,
     });
 
@@ -135,8 +137,9 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { projectId: string } },
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
+  const { projectId } = await params;
   try {
     const session = await auth();
 
@@ -147,7 +150,7 @@ export async function DELETE(
     // Verificar ownership
     const existingProject = await prisma.project.findUnique({
       where: {
-        id: params.projectId,
+        id: projectId,
         userId: session.user.id,
       },
     });
@@ -160,7 +163,7 @@ export async function DELETE(
     }
 
     await prisma.project.delete({
-      where: { id: params.projectId },
+      where: { id: projectId },
     });
 
     return NextResponse.json({ success: true });
