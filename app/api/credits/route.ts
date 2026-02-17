@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getUserCredits, getCreditStats } from "@/lib/credits";
+import { getCreditBalance, getCreditStats } from "@/actions/credits/service";
 import prisma from "@/lib/prisma";
 
 /**
@@ -16,7 +16,8 @@ export async function GET() {
     }
 
     // Obtener créditos actuales
-    const credits = await getUserCredits(session.user.id);
+    const balance = await getCreditBalance(session.user.id);
+    const credits = balance.isAdmin ? Infinity : balance.available;
 
     // Obtener estadísticas
     const stats = await getCreditStats(session.user.id);

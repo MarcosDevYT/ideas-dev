@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    turbopackFileSystemCacheForDev: true,
-  },
+  // Turbopack disabled to avoid build error with workUnitAsyncStorage
+  // experimental: {
+  //   turbopackFileSystemCacheForDev: true,
+  // },
   typescript: {
     ignoreBuildErrors: true,
   },

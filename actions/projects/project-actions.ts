@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { generateProjectTitle } from "@/lib/ai-helper";
 
 // ============================================
-// Projects Actions
+// Projects Actions (CRUD)
 // ============================================
 
 /**
@@ -46,43 +46,26 @@ export async function createProjectAction(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   originalIdea?: any,
 ) {
-  console.log("🔧 [createProjectAction] INICIO");
-  console.log("📝 [createProjectAction] Parámetros:", {
-    name,
-    description: description.substring(0, 50) + "...",
-    hasOriginalIdea: !!originalIdea,
-  });
-
   const session = await auth();
-  console.log("👤 [createProjectAction] Sesión:", {
-    hasSession: !!session,
-    userId: session?.user?.id,
-  });
 
   if (!session?.user?.id) {
-    console.error("❌ [createProjectAction] No autenticado");
-    throw new Error("No autenticado");
+    return { success: false, error: "Unauthorized" };
   }
 
   try {
     let finalName = name;
 
-    // Si tenemos la idea original, intentamos generar un nombre más "producto" y amigable
+    // If we have the original idea, try to generate a better title
     if (originalIdea) {
-      console.log("🤖 [createProjectAction] Generando título con IA...");
       const generatedName = await generateProjectTitle(
         description,
         originalIdea,
       );
-      console.log("📛 [createProjectAction] Título generado:", generatedName);
 
       if (generatedName && generatedName.length > 0) {
         finalName = generatedName;
       }
     }
-
-    console.log("💾 [createProjectAction] Creando proyecto en BD...");
-    console.log("📋 [createProjectAction] Título final:", finalName);
 
     const project = await prisma.project.create({
       data: {
@@ -93,25 +76,13 @@ export async function createProjectAction(
       },
     });
 
-    console.log("✅ [createProjectAction] Proyecto creado:", {
-      id: project.id,
-      title: project.title,
-    });
-
-    // Revalidate both the projects list and the new project page
-    console.log("🔄 [createProjectAction] Revalidando paths...");
     revalidatePath("/chat/proyectos");
     revalidatePath(`/chat/proyectos/${project.id}`);
-    console.log("✨ [createProjectAction] Paths revalidados");
 
-    console.log(
-      "🎉 [createProjectAction] Retornando éxito con projectId:",
-      project.id,
-    );
     return { success: true, projectId: project.id };
   } catch (error) {
-    console.error("💥 [createProjectAction] Error:", error);
-    return { success: false, error: "Error al crear el proyecto" };
+    console.error("Error creating project:", error);
+    return { success: false, error: "Error creating project" };
   }
 }
 
@@ -121,22 +92,13 @@ export async function createProjectAction(
 export async function renameProjectAction(id: string, title: string) {
   try {
     const session = await auth();
+    if (!session?.user?.id) return { error: "Unauthorized" };
 
-    if (!session?.user?.id) {
-      return { error: "Unauthorized" };
-    }
-
-    // Verify ownership
     const project = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
+      where: { id, userId: session.user.id },
     });
 
-    if (!project) {
-      return { error: "Project not found" };
-    }
+    if (!project) return { error: "Project not found" };
 
     const updated = await prisma.project.update({
       where: { id },
@@ -144,6 +106,7 @@ export async function renameProjectAction(id: string, title: string) {
     });
 
     revalidatePath("/");
+    revalidatePath("/chat/proyectos");
 
     return {
       success: true,
@@ -161,28 +124,18 @@ export async function renameProjectAction(id: string, title: string) {
 export async function deleteProjectAction(id: string) {
   try {
     const session = await auth();
+    if (!session?.user?.id) return { error: "Unauthorized" };
 
-    if (!session?.user?.id) {
-      return { error: "Unauthorized" };
-    }
-
-    // Verify ownership
     const project = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
+      where: { id, userId: session.user.id },
     });
 
-    if (!project) {
-      return { error: "Project not found" };
-    }
+    if (!project) return { error: "Project not found" };
 
-    await prisma.project.delete({
-      where: { id },
-    });
+    await prisma.project.delete({ where: { id } });
 
     revalidatePath("/");
+    revalidatePath("/chat/proyectos");
 
     return { success: true };
   } catch (error) {
@@ -197,22 +150,13 @@ export async function deleteProjectAction(id: string) {
 export async function toggleProjectPinAction(id: string) {
   try {
     const session = await auth();
+    if (!session?.user?.id) return { error: "Unauthorized" };
 
-    if (!session?.user?.id) {
-      return { error: "Unauthorized" };
-    }
-
-    // Verify ownership
     const project = await prisma.project.findFirst({
-      where: {
-        id,
-        userId: session.user.id,
-      },
+      where: { id, userId: session.user.id },
     });
 
-    if (!project) {
-      return { error: "Project not found" };
-    }
+    if (!project) return { error: "Project not found" };
 
     const updated = await prisma.project.update({
       where: { id },
@@ -220,6 +164,7 @@ export async function toggleProjectPinAction(id: string) {
     });
 
     revalidatePath("/");
+    revalidatePath("/chat/proyectos");
 
     return {
       success: true,
@@ -237,37 +182,27 @@ export async function toggleProjectPinAction(id: string) {
 export async function generateProjectSummaryAction(projectId: string) {
   try {
     const session = await auth();
-
-    if (!session?.user?.id) {
-      return { error: "Unauthorized" };
-    }
-
+    if (!session?.user?.id) return { error: "Unauthorized" };
     const userId = session.user.id;
 
-    // 1. Get Project and User Credits
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       include: {
         messages: {
           orderBy: { createdAt: "asc" },
-          take: 20, // Tomamos suficiente contexto
+          take: 20,
         },
-        user: {
-          select: { credits: true },
-        },
+        user: { select: { credits: true } },
       },
     });
 
     if (!project) return { error: "Project not found" };
     if (project.userId !== userId) return { error: "Unauthorized" };
 
-    // 2. Check Credits
     if ((project.user.credits || 0) < 1) {
       return { error: "Insufficient credits" };
     }
 
-    // 3. Generate Summary
-    // Import dynamically to avoid circular dependencies if any
     const { generateProjectSummary } = await import("@/lib/ai-helper");
 
     const summary = await generateProjectSummary(
@@ -275,7 +210,6 @@ export async function generateProjectSummaryAction(projectId: string) {
       project.messages.map((m) => ({ role: m.role, content: m.content })),
     );
 
-    // 4. Update Project and Deduct Credits
     await prisma.$transaction([
       prisma.project.update({
         where: { id: projectId },
@@ -322,21 +256,18 @@ export async function generateProjectTasksAction(projectId: string) {
 
     const { generateProjectTasks } = await import("@/lib/ai-helper");
 
-    // Generate tasks
     const tasksData = await generateProjectTasks(
       project.description,
       project.aiSummary,
       project.messages.map((m) => ({ role: m.role, content: m.content })),
     );
 
-    // Transaction: Decrement credits and Create Tasks
     await prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
         data: { credits: { decrement: 1 } },
       });
 
-      // Insert tasks one by one or createMany
       await tx.task.createMany({
         data: tasksData.map((task) => ({
           title: task.title,
@@ -362,7 +293,6 @@ export async function getProjectTasksAction(projectId: string) {
   const session = await auth();
   if (!session?.user?.id) return [];
 
-  // Only fetch if user owns project
   const project = await prisma.project.findUnique({
     where: { id: projectId, userId: session.user.id },
   });
@@ -409,10 +339,6 @@ export async function toggleTaskStatusAction(
     const session = await auth();
     if (!session?.user?.id) return { error: "Unauthorized" };
 
-    // Verify ownership through project relation (implicitly safe if we find the task and check project owner,
-    // but simpler to just update if we trust the taskId comes from the user view.
-    // Ideally we check ownership.)
-
     await prisma.task.update({
       where: { id: taskId },
       data: {
@@ -420,8 +346,6 @@ export async function toggleTaskStatusAction(
       },
     });
 
-    // We assume revalidation happens via client state update or generic revalidate
-    // Ideally we know the projectId to revalidate the path properly
     return { success: true };
   } catch (error) {
     console.error("Error toggling task:", error);

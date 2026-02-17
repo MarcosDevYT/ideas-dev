@@ -1,4 +1,4 @@
-import { generateProjectChatCompletion } from "./ai-client";
+import { generateProjectChatCompletion, streamProjectChat } from "./ai-client";
 
 /**
  * Genera un título corto, simple y amigable para un proyecto.
@@ -195,4 +195,96 @@ export async function generateProjectResources(
     console.error("Error generating project resources:", error);
     throw new Error("Failed to generate resources");
   }
+}
+
+/**
+ * Genera un stream de tareas sugeridas para el proyecto (formato Markdown).
+ */
+export async function generateProjectTasksStream(
+  description: string | null,
+  summary: string | null,
+  messages: { role: string; content: string }[],
+): Promise<ReadableStream> {
+  const messagesContext = messages
+    .slice(-15)
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n");
+
+  const prompt = `
+      Basado en la siguiente información del proyecto, genera una lista de 5 a 10 tareas clave.
+      
+      Descripción: ${description || "No disponible"}
+      Resumen existente: ${summary || "No disponible"}
+      Contexto reciente: ${messagesContext}
+      
+      Responde CON UNA LISTA MARKDOWN simple.
+      Cada tarea debe empezar con un guion corto "- ".
+      NO uses numeración.
+      NO uses formato JSON.
+      NO incluyas texto introductorio ni conclusiones.
+      
+      Ejemplo formato:
+      - Configurar repositorio
+      - Diseñar base de datos
+      - Implementar autenticación
+    `;
+
+  return await streamProjectChat({
+    messages: [
+      {
+        role: "system",
+        content:
+          "Eres un Project Manager técnico. Generas listas de tareas claras y directas.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+  });
+}
+
+/**
+ * Genera un stream de recursos sugeridos para el proyecto (formato Markdown).
+ */
+export async function generateProjectResourcesStream(
+  description: string | null,
+  summary: string | null,
+  messages: { role: string; content: string }[],
+): Promise<ReadableStream> {
+  const messagesContext = messages
+    .slice(-15)
+    .map((m) => `${m.role}: ${m.content}`)
+    .join("\n");
+
+  const prompt = `
+      Basado en la siguiente información del proyecto, sugiere 5 recursos técnicos útiles.
+      
+      Descripción: ${description || "No disponible"}
+      Resumen existente: ${summary || "No disponible"}
+      Contexto reciente: ${messagesContext}
+      
+      Responde CON UNA LISTA MARKDOWN simple.
+      Cada recurso debe tener el formato: "- [Título](URL) - Tipo (Link/Tool/File)".
+      Si no tienes URL, usa solo "- Título - Tipo".
+      
+      Ejemplo formato:
+      - [Documentación React](https://react.dev) - Link
+      - [Tailwind CSS](https://tailwindcss.com) - Tool
+      
+      NO uses formato JSON.
+    `;
+
+  return await streamProjectChat({
+    messages: [
+      {
+        role: "system",
+        content: "Eres un Arquitecto de Software. Recomiendas recursos útiles.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+  });
 }

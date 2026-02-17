@@ -26,7 +26,7 @@ import {
   renameProjectAction,
   deleteProjectAction,
   toggleProjectPinAction,
-} from "@/actions/project-actions";
+} from "@/actions/projects/project-actions";
 import { eventBus, EVENTS } from "@/lib/events";
 
 interface ProjectHeaderMobileProps {

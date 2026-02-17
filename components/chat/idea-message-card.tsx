@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createProjectAction } from "@/actions/project-actions";
+import { createProjectAction } from "@/actions/projects/project-actions";
 import { eventBus, EVENTS } from "@/lib/events";
 import { toast } from "sonner";
 import {

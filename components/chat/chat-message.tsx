@@ -11,6 +11,7 @@ interface ChatMessageProps {
   content: string;
   timestamp?: Date;
   isStreaming?: boolean;
+  chatContext?: "idea" | "project";
 }
 
 export function ChatMessage({
@@ -18,6 +19,7 @@ export function ChatMessage({
   content,
   timestamp,
   isStreaming = false,
+  chatContext = "idea",
 }: ChatMessageProps) {
   const isUser = role === "user";
 
@@ -212,33 +214,48 @@ export function ChatMessage({
 
             {/* Estado Loading (Skeleton) - Solo si NO hay datos aun */}
             {isGeneratingJson && !ideaData && !displayText && (
-              // Estado de carga "Generando Idea"
-              <div className="w-full max-w-2xl space-y-4 p-4 border rounded-xl bg-card/50 backdrop-blur-sm border-primary/20 animate-pulse">
-                <div className="flex flex-col space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-5 w-20 rounded-full bg-primary/20" />
-                    <Skeleton className="h-5 w-24 rounded-full bg-secondary/20" />
+              <>
+                {chatContext === "idea" ? (
+                  // Estado de carga "Generando Idea" (Card Skeleton)
+                  <div className="w-full max-w-2xl space-y-4 p-4 border rounded-xl bg-card/50 backdrop-blur-sm border-primary/20 animate-pulse">
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-5 w-20 rounded-full bg-primary/20" />
+                        <Skeleton className="h-5 w-24 rounded-full bg-secondary/20" />
+                      </div>
+                      <Skeleton className="h-8 w-3/4 bg-primary/10" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-5/6" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      <Skeleton className="h-20 w-full rounded-lg" />
+                      <Skeleton className="h-20 w-full rounded-lg" />
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                      </span>
+                      <span className="text-xs font-medium text-primary">
+                        Generando Idea...
+                      </span>
+                    </div>
                   </div>
-                  <Skeleton className="h-8 w-3/4 bg-primary/10" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-5/6" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <Skeleton className="h-20 w-full rounded-lg" />
-                  <Skeleton className="h-20 w-full rounded-lg" />
-                </div>
-
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                  </span>
-                  <span className="text-xs font-medium text-primary">
-                    Generando idea increíble...
-                  </span>
-                </div>
-              </div>
+                ) : (
+                  // Estado de carga "Escribiendo..." (Text Skeleton)
+                  <div className="flex items-center space-x-2 p-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                    </span>
+                    <span className="text-xs font-medium text-muted-foreground animate-pulse">
+                      Generando Respuesta...
+                    </span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

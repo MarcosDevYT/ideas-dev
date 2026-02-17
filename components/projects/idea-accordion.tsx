@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Rocket, Lightbulb, Layers } from "lucide-react";
 
-interface IdeaDetails {
+export interface IdeaDetails {
   nombre: string;
   descripcion: string;
   tipo: string;

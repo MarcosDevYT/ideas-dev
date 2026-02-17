@@ -3,10 +3,7 @@ import { redirect } from "next/navigation";
 import { CreditsPanel } from "@/components/credits/credits-panel";
 import { TransactionsHistory } from "@/components/credits/transactions-history";
 import { Separator } from "@/components/ui/separator";
-import {
-  getCreditsDataAction,
-  getTransactionsAction,
-} from "@/lib/actions/credits-actions";
+import { getCreditsDataAction, getTransactionsAction } from "@/actions/credits";
 
 export default async function CreditsPage() {
   // Verificar autenticación

@@ -11,10 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  CREDIT_PACKAGES,
-  type PackageId,
-} from "@/lib/constants/credit-packages";
+import { CREDIT_PACKAGES, type PackageId } from "@/actions/credits/constants";
 import { Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 

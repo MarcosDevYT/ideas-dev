@@ -2,6 +2,7 @@
 
 import { auth, signIn } from "@/auth";
 import { sendEmailVerification, sendResetPasswordEmail } from "@/lib/mail";
+import { initializeUserCredits } from "@/actions/credits/service";
 
 import {
   forgotPasswordSchema,
@@ -84,8 +85,6 @@ export const registerAction = async (
     });
 
     // Initialize credits for the new user
-    const { initializeUserCredits } =
-      await import("@/lib/services/credit-service");
     await initializeUserCredits(newUser.id);
 
     // Hacemos el login con los datos del formulario utilizando next-auth

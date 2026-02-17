@@ -8,15 +8,15 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { generateProjectSummaryAction } from "@/actions/project-actions";
-import { IdeaAccordion } from "./idea-accordion";
+import { generateProjectSummaryAction } from "@/actions/projects/project-actions";
+import { IdeaAccordion, IdeaDetails } from "./idea-accordion";
 import { Badge } from "../ui/badge";
 
 interface ProjectOverviewClientProps {
   projectId: string;
   initialSummary: string | null;
   description: string | null;
-  originalIdea?: any; // Recibimos el JSON de la idea
+  originalIdea?: IdeaDetails; // Recibimos el JSON de la idea
   userCredits: number;
 }
 

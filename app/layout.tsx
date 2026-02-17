@@ -6,6 +6,8 @@ import { SessionProvider } from "next-auth/react";
 import type { Metadata } from "next";
 import "./globals.css";
 
+export const dynamic = "force-dynamic";
+
 const syne = Syne({
   variable: "--font-syne",
   subsets: ["latin"],

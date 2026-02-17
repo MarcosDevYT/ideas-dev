@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { addCredits } from "@/lib/credits";
-import {
-  CREDIT_PACKAGES,
-  type PackageId,
-} from "@/lib/constants/credit-packages";
+import { addCredits } from "@/actions/credits/service";
+import { CREDIT_PACKAGES, type PackageId } from "@/actions/credits/constants";
 
 /**
  * POST /api/credits/purchase

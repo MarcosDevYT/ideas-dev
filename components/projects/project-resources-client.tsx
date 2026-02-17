@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -13,6 +13,7 @@ import {
   Link as LinkIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { eventBus, EVENTS } from "@/lib/events";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,10 +27,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  generateProjectResourcesAction,
   createResourceAction,
   deleteResourceAction,
-} from "@/actions/project-actions";
+} from "@/actions/projects/project-actions";
 
 interface Resource {
   id: string;
@@ -53,9 +53,18 @@ export function ProjectResourcesClient({
   const [resources, setResources] = useState<Resource[]>(initialResources);
   const [credits, setCredits] = useState(userCredits);
 
+  useEffect(() => {
+    setResources(initialResources);
+  }, [initialResources]);
+
+  useEffect(() => {
+    setCredits(userCredits);
+  }, [userCredits]);
+
   // States for actions
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [streamingResources, setStreamingResources] = useState<Resource[]>([]);
 
   // New Resource Form
   const [newTitle, setNewTitle] = useState("");
@@ -70,18 +79,75 @@ export function ProjectResourcesClient({
     }
 
     setIsGenerating(true);
+    setStreamingResources([]);
     toast.info("Buscando recursos con IA...");
 
     try {
-      const result = await generateProjectResourcesAction(projectId);
+      const response = await fetch(
+        `/api/projects/${projectId}/resources/stream`,
+        {
+          method: "POST",
+        },
+      );
 
-      if (result.success) {
-        setCredits((prev) => Math.max(0, prev - 1));
-        toast.success("Recursos generados exitosamente.");
-        router.refresh();
-      } else {
-        toast.error(result.error || "Error al generar recursos.");
+      if (!response.ok) throw new Error(response.statusText);
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const text = decoder.decode(value, { stream: true });
+        fullText += text;
+
+        // Parse for preview
+        const parsed = fullText
+          .split("\n")
+          .filter((line) => line.trim().startsWith("- "))
+          .map((line, idx) => {
+            const content = line.trim().substring(2).trim();
+            const linkMatch = content.match(/\[(.*?)\]\((.*?)\)/);
+
+            let title = content;
+            let url = null;
+            let type = "link";
+
+            if (linkMatch) {
+              title = linkMatch[1];
+              url = linkMatch[2];
+              const typeMatch = content
+                .replace(linkMatch[0], "")
+                .match(/-\s*(\w+)$/);
+              if (typeMatch) type = typeMatch[1].toLowerCase();
+            } else {
+              const parts = content.split(" - ");
+              title = parts[0];
+              if (parts.length > 1)
+                type = parts[parts.length - 1].toLowerCase();
+            }
+
+            return {
+              id: `streaming-${idx}`,
+              title,
+              type,
+              url,
+            };
+          });
+        setStreamingResources(parsed);
       }
+
+      setCredits((prev) => Math.max(0, prev - 1));
+      eventBus.emit(EVENTS.REFRESH_SIDEBAR);
+      toast.success("Recursos generadas exitosamente.");
+
+      // Wait a moment for server background task to complete DB save
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      setStreamingResources([]);
+      router.refresh();
     } catch (error) {
       console.error(error);
       toast.error("Ocurrió un error inesperado.");
@@ -240,7 +306,29 @@ export function ProjectResourcesClient({
 
           {/* Resources Display */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {resources.length === 0 ? (
+            {isGenerating &&
+              streamingResources.length > 0 &&
+              streamingResources.map((resource) => (
+                <div
+                  key={resource.id}
+                  className="relative flex flex-col p-4 rounded-lg border bg-primary/5 border-primary/20 animate-pulse"
+                >
+                  <div className="flex items-start justify-between mb-2 opacity-70">
+                    <div className="p-2 rounded-md bg-muted/50">
+                      {getIconForType(resource.type)}
+                    </div>
+                  </div>
+                  <h3 className="font-semibold text-foreground/80 mb-1 truncate">
+                    {resource.title}
+                  </h3>
+                  {resource.url && (
+                    <span className="text-xs text-muted-foreground mt-auto truncate opacity-70">
+                      {resource.url}
+                    </span>
+                  )}
+                </div>
+              ))}
+            {resources.length === 0 && !isGenerating ? (
               <div className="col-span-full text-center py-10 opacity-50">
                 <div className="inline-block p-3 rounded-full bg-muted mb-2">
                   <LinkIcon className="w-6 h-6" />

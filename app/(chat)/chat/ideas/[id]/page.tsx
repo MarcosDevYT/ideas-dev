@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { IdeaChatClient } from "@/components/chat/idea-chat-client";
-import { getUserCredits } from "@/lib/credits";
+import { getCreditBalance } from "@/actions/credits/service";
 
 export default async function ChatPage(props: {
   params: Promise<{ id: string }>;
@@ -41,7 +41,8 @@ export default async function ChatPage(props: {
   }));
 
   // Get credits
-  const creditsRaw = await getUserCredits(session.user.id);
+  const balance = await getCreditBalance(session.user.id);
+  const creditsRaw = balance.isAdmin ? Infinity : balance.available;
   const credits = creditsRaw === Infinity ? 999999 : creditsRaw;
 
   return (

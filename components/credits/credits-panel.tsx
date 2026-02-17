@@ -10,11 +10,11 @@ import { Coins, TrendingUp, TrendingDown, Calendar } from "lucide-react";
 import {
   getTransactionIcon,
   getTransactionTypeName,
-} from "@/lib/constants/credit-packages";
+} from "@/actions/credits/constants";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { PurchaseCreditsButton } from "./purchase-credits-button";
-import type { CreditsData } from "@/lib/actions/credits-actions";
+import type { CreditsData } from "@/actions/credits";
 
 interface CreditsPanelProps {
   initialData: CreditsData;

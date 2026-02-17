@@ -13,11 +13,11 @@ import {
 import {
   deleteIdeaChatAction,
   toggleIdeaChatPinAction,
-} from "@/actions/chat-actions";
+} from "@/actions/ideas/chat-actions";
 import {
   deleteProjectAction,
   toggleProjectPinAction,
-} from "@/actions/project-actions";
+} from "@/actions/projects/project-actions";
 import { RenameChatDialog } from "@/components/dialogs/rename-chat-dialog";
 import { toast } from "sonner";
 import Link from "next/link";

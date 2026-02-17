@@ -18,9 +18,9 @@ import {
 import { cn } from "@/lib/utils";
 import { useMediaQueryCustom } from "@/hooks/mediaQueryHook";
 import { LogoComponent } from "../LogoComponent";
-import { getIdeaChatsAction } from "@/actions/chat-actions";
-import { getProjectsAction } from "@/actions/project-actions";
-import { getUserCreditsAction } from "@/actions/credit-actions";
+import { getIdeaChatsAction } from "@/actions/ideas/chat-actions";
+import { getProjectsAction } from "@/actions/projects/project-actions";
+import { getUserCreditsAction } from "@/actions/credits";
 import { eventBus, EVENTS } from "@/lib/events";
 import { useSession } from "next-auth/react";
 import Link from "next/link";

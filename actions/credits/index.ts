@@ -1,12 +1,16 @@
 "use server";
 
 import { auth } from "@/auth";
-import { getUserCredits, getCreditStats } from "@/lib/credits";
 import prisma from "@/lib/prisma";
+import {
+  getCreditBalance,
+  getCreditHistory,
+  getCreditStats,
+  addCredits,
+  isCurrentUserAdmin,
+} from "./service";
+import { revalidatePath } from "next/cache";
 
-/**
- * Tipos para las respuestas de las server actions
- */
 export type CreditsData = {
   credits: number;
   isAdmin: boolean;
@@ -41,19 +45,55 @@ export type TransactionsData = {
 };
 
 /**
+ * Server Action: Get simple user credits balance
+ */
+export async function getUserCreditsAction() {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return { error: "Unauthorized" };
+    }
+
+    const balance = await getCreditBalance(session.user.id);
+
+    return {
+      success: true,
+      data: balance.available,
+    };
+  } catch (error) {
+    console.error("Error getting user credits:", error);
+    return { error: "Failed to get user credits" };
+  }
+}
+
+/**
  * Server Action: Obtiene datos completos de créditos del usuario
  * Incluye: balance, stats, transacciones recientes, y estado de admin
  */
 export async function getCreditsDataAction(
-  userId: string,
+  userId?: string,
 ): Promise<CreditsData> {
   try {
+    const session = await auth();
+    const targetUserId = userId || session?.user?.id;
+
+    if (!targetUserId) {
+      throw new Error("Unauthorized");
+    }
+
+    // Si pide datos de otro usuario, verificar si es admin (aunque por ahora asumimos que solo pide los suyos o es server component)
+    if (userId && userId !== session?.user?.id) {
+      const isAdmin = await isCurrentUserAdmin();
+      if (!isAdmin) throw new Error("Unauthorized");
+    }
+
     // Fetch paralelo de todos los datos necesarios
     const [credits, stats, recentTransactions, user] = await Promise.all([
-      getUserCredits(userId),
-      getCreditStats(userId),
+      getCreditBalance(targetUserId),
+      getCreditStats(targetUserId),
       prisma.creditTransaction.findMany({
-        where: { userId },
+        where: { userId: targetUserId },
         orderBy: { createdAt: "desc" },
         take: 5,
         select: {
@@ -65,13 +105,13 @@ export async function getCreditsDataAction(
         },
       }),
       prisma.user.findUnique({
-        where: { id: userId },
+        where: { id: targetUserId },
         select: { isAdmin: true },
       }),
     ]);
 
     return {
-      credits,
+      credits: credits.available,
       isAdmin: user?.isAdmin || false,
       stats,
       recentTransactions,
@@ -86,13 +126,20 @@ export async function getCreditsDataAction(
  * Server Action: Obtiene historial de transacciones con paginación
  */
 export async function getTransactionsAction(params: {
-  userId: string;
+  userId?: string;
   page?: number;
   limit?: number;
   type?: string;
 }): Promise<TransactionsData> {
   try {
-    const { userId, page = 1, limit = 20, type } = params;
+    const session = await auth();
+    const userId = params.userId || session?.user?.id;
+
+    if (!userId) {
+      throw new Error("Unauthorized");
+    }
+
+    const { page = 1, limit = 20, type } = params;
 
     // Validar parámetros
     if (page < 1 || limit < 1 || limit > 100) {
@@ -139,8 +186,65 @@ export async function getTransactionsAction(params: {
 }
 
 /**
+ * Server Action: Get simple credit history (non-paginated wrapper for compatibility)
+ */
+export async function getCreditHistoryAction(limit: number = 50) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return { error: "Unauthorized" };
+    }
+
+    const history = await getCreditHistory(session.user.id, limit);
+
+    return {
+      success: true,
+      data: history,
+    };
+  } catch (error) {
+    console.error("Error getting credit history:", error);
+    return { error: "Failed to get credit history" };
+  }
+}
+
+/**
+ * Admin action: Add credits to a user
+ */
+export async function addCreditsToUserAction(
+  userId: string,
+  amount: number,
+  description?: string,
+) {
+  try {
+    const isAdmin = await isCurrentUserAdmin();
+
+    if (!isAdmin) {
+      return { error: "Unauthorized: Admin access required" };
+    }
+
+    const newBalance = await addCredits(
+      userId,
+      amount,
+      "admin_adjustment",
+      description,
+    );
+
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${userId}`);
+
+    return {
+      success: true,
+      data: { newBalance },
+    };
+  } catch (error) {
+    console.error("Error adding credits:", error);
+    return { error: "Failed to add credits" };
+  }
+}
+
+/**
  * Server Action: Verifica autenticación y devuelve userId
- * Útil para componentes que necesitan verificar auth antes de hacer fetching
  */
 export async function getCurrentUserId(): Promise<string | null> {
   const session = await auth();

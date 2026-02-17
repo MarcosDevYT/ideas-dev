@@ -25,21 +25,19 @@ import {
   renameIdeaChatAction,
   deleteIdeaChatAction,
   toggleIdeaChatPinAction,
-} from "@/actions/chat-actions";
+} from "@/actions/ideas/chat-actions";
 import { eventBus, EVENTS } from "@/lib/events";
 
 interface ChatHeaderProps {
   chatId: string;
   initialTitle: string;
   initialIsPinned: boolean;
-  userId: string;
 }
 
 export function ChatHeader({
   chatId,
   initialTitle,
   initialIsPinned,
-  userId,
 }: ChatHeaderProps) {
   const router = useRouter();
   const [title, setTitle] = useState(initialTitle);
@@ -52,7 +50,7 @@ export function ChatHeader({
   const handleRename = async () => {
     if (!newTitle.trim()) return;
 
-    const result = await renameIdeaChatAction(chatId, newTitle, userId);
+    const result = await renameIdeaChatAction(chatId, newTitle);
     if (result.success) {
       setTitle(newTitle);
       setIsRenameDialogOpen(false);

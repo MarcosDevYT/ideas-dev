@@ -23,10 +23,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   getTransactionIcon,
   getTransactionTypeName,
-} from "@/lib/constants/credit-packages";
+} from "@/actions/credits/constants";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import type { TransactionsData } from "@/lib/actions/credits-actions";
+import type { TransactionsData } from "@/actions/credits";
 
 interface TransactionsHistoryProps {
   initialData: TransactionsData;

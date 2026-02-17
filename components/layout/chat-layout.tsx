@@ -6,7 +6,7 @@ import { Card, CardContent } from "../ui/card";
 import { ChatInput } from "../chat/chat-input";
 import { UserWithDetails } from "@/types/user-types";
 import { useRouter } from "next/navigation";
-import { createIdeaChatAction } from "@/actions/chat-actions";
+import { createIdeaChatAction } from "@/actions/ideas/chat-actions";
 import { toast } from "sonner";
 
 const suggestions = [

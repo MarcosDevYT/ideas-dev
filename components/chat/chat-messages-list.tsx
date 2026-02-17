@@ -16,12 +16,14 @@ interface ChatMessagesListProps {
   messages: Message[];
   isLoading?: boolean;
   isStreaming?: boolean;
+  chatContext?: "idea" | "project";
 }
 
 export function ChatMessagesList({
   messages,
   isLoading = false,
   isStreaming = false,
+  chatContext = "idea",
 }: ChatMessagesListProps) {
   const { containerRef, scrollToBottom } = useChatScroll();
 
@@ -43,6 +45,7 @@ export function ChatMessagesList({
             content={message.content}
             timestamp={message.timestamp}
             isStreaming={isStreaming && index === messages.length - 1}
+            chatContext={chatContext}
           />
         ))}
 

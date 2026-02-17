@@ -4,7 +4,7 @@ import { GoogleSignIn } from "@/components/authComponents/GoogleSignIn";
 import { LogoComponent } from "@/components/LogoComponent";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 export default async function LoginPage({
   searchParams,

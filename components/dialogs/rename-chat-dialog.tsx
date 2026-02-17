@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { renameIdeaChatAction } from "@/actions/chat-actions";
-import { renameProjectAction } from "@/actions/project-actions";
+import { renameIdeaChatAction } from "@/actions/ideas/chat-actions";
+import { renameProjectAction } from "@/actions/projects/project-actions";
 import { toast } from "sonner";
 import { eventBus, EVENTS } from "@/lib/events";
 

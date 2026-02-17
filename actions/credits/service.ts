@@ -1,16 +1,7 @@
 import prisma from "@/lib/prisma";
-import type {
-  CreditBalance,
-  CreditConsumption,
-  CreditTransactionType,
-} from "@/lib/types/database";
-
-// ============================================
-// Constants
-// ============================================
-
-const FREE_TIER_CREDITS = 10;
-const PAID_TIER_CREDITS = 100;
+import type { CreditBalance, CreditConsumption } from "@/lib/types/database";
+import { CREDIT_LIMITS, CREDIT_MESSAGES } from "./constants";
+import { auth } from "@/auth";
 
 // ============================================
 // Credit Balance Management
@@ -144,7 +135,7 @@ export async function consumeCredits(
 export async function createCreditTransaction(
   userId: string,
   amount: number,
-  type: CreditTransactionType,
+  type: string,
   description?: string,
 ): Promise<void> {
   await prisma.creditTransaction.create({
@@ -163,7 +154,7 @@ export async function createCreditTransaction(
 export async function addCredits(
   userId: string,
   amount: number,
-  type: CreditTransactionType,
+  type: string,
   description?: string,
 ): Promise<number> {
   const [updatedUser] = await prisma.$transaction([
@@ -185,7 +176,7 @@ export async function addCredits(
 }
 
 // ============================================
-// Monthly Reset
+// Monthly Reset & Initialization
 // ============================================
 
 /**
@@ -209,8 +200,8 @@ export async function resetMonthlyCredits(userId: string): Promise<void> {
   // Determine credit amount based on subscription
   const creditAmount =
     user.subscription?.status === "active"
-      ? PAID_TIER_CREDITS
-      : FREE_TIER_CREDITS;
+      ? CREDIT_LIMITS.PAID_TIER
+      : CREDIT_LIMITS.FREE_TIER;
 
   // Calculate next reset date (1 month from now)
   const nextResetDate = new Date();
@@ -246,21 +237,21 @@ export async function initializeUserCredits(userId: string): Promise<void> {
   await prisma.user.update({
     where: { id: userId },
     data: {
-      credits: FREE_TIER_CREDITS,
+      credits: CREDIT_LIMITS.FREE_TIER,
       creditsResetAt: nextResetDate,
     },
   });
 
   await createCreditTransaction(
     userId,
-    FREE_TIER_CREDITS,
+    CREDIT_LIMITS.FREE_TIER,
     "monthly_reset",
     "Initial credits for new user",
   );
 }
 
 // ============================================
-// Credit History
+// Credit History & Stats
 // ============================================
 
 /**
@@ -272,4 +263,138 @@ export async function getCreditHistory(userId: string, limit: number = 50) {
     orderBy: { createdAt: "desc" },
     take: limit,
   });
+}
+
+/**
+ * Obtiene estadísticas de créditos del usuario
+ */
+export async function getCreditStats(userId: string): Promise<{
+  totalConsumed: number;
+  totalPurchased: number;
+  lastPurchase: Date | null;
+}> {
+  const transactions = await prisma.creditTransaction.findMany({
+    where: { userId },
+    select: {
+      amount: true,
+      type: true,
+      createdAt: true,
+    },
+  });
+
+  const totalConsumed = transactions
+    .filter((t) => t.type === "consumption" || t.type === "CONSUMPTION")
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+  const totalPurchased = transactions
+    .filter((t) => t.type === "purchase" || t.type === "PURCHASE")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const lastPurchaseTransaction = transactions
+    .filter((t) => t.type === "purchase" || t.type === "PURCHASE")
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+
+  return {
+    totalConsumed,
+    totalPurchased,
+    lastPurchase: lastPurchaseTransaction?.createdAt || null,
+  };
+}
+
+// ============================================
+// Limits & Permissions
+// ============================================
+
+/**
+ * Verifica si el usuario puede crear un nuevo chat de ideas
+ * Límite: 5 chats de ideas (excepto admin)
+ */
+export async function canCreateIdeaChat(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isAdmin: true },
+  });
+
+  if (user?.isAdmin) return true; // Admin sin límite
+
+  const count = await prisma.ideaChat.count({
+    where: { userId },
+  });
+
+  return count < 5;
+}
+
+/**
+ * Verifica si el usuario puede crear un nuevo proyecto
+ * Límite: 10 proyectos (excepto admin)
+ */
+export async function canCreateProject(userId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      isAdmin: true,
+      _count: {
+        select: { projects: true },
+      },
+    },
+  });
+
+  if (!user) return false;
+  if (user.isAdmin) return true; // Admin sin límite
+
+  return user._count.projects < 10;
+}
+
+// ============================================
+// Admin & Utils
+// ============================================
+
+/**
+ * Check if current user is admin
+ */
+export async function isCurrentUserAdmin(): Promise<boolean> {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return false;
+  }
+
+  const balance = await getCreditBalance(session.user.id);
+  return balance.isAdmin;
+}
+
+// ============================================
+// Middleware Validation Helper
+// ============================================
+
+/**
+ * Validates that the current user has sufficient credits
+ * Returns the user session if valid, throws error if not
+ * (Migrated from credit-middleware.ts)
+ */
+export async function validateCredits(requiredAmount: number = 1) {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    throw new Error("Unauthorized");
+  }
+
+  const balance = await getCreditBalance(session.user.id);
+
+  // Admins have unlimited credits
+  if (balance.isAdmin) {
+    return { session, balance, isAdmin: true };
+  }
+
+  // Check if user has enough credits
+  const hasSufficientCredits = await hasCredits(
+    session.user.id,
+    requiredAmount,
+  );
+
+  if (!hasSufficientCredits) {
+    throw new Error(CREDIT_MESSAGES.INSUFFICIENT);
+  }
+
+  return { session, balance, isAdmin: false };
 }

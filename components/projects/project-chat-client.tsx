@@ -14,6 +14,8 @@ interface Message {
   timestamp: Date;
 }
 
+import { generateProjectResponseAction } from "@/actions/projects/chat-actions";
+
 interface ProjectChatClientProps {
   initialMessages: Message[];
   projectId: string;
@@ -41,7 +43,6 @@ export const ProjectChatClient = ({
     setIsLoading(true);
 
     try {
-      // Prepare IDs
       const assistantMsgId = `assistant-${Date.now()}`;
       const currentTimestamp = new Date();
 
@@ -64,22 +65,15 @@ export const ProjectChatClient = ({
         },
       ]);
 
-      // Prepare request body
-      const body = {
+      // Call Server Action
+      const result = await generateProjectResponseAction({
         message: content,
-        projectId: projectId,
-      };
-
-      // Fetch API
-      const response = await fetch("/api/projects/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        projectId,
       });
 
-      if (response.status === 403) {
-        toast.error("No tienes suficientes créditos");
-        // Remover los mensajes optimistas si falla por créditos
+      if (result.error) {
+        toast.error(result.error);
+        // Remove optimistic messages on error
         setMessages((prev) =>
           prev.filter(
             (msg) => msg.id !== userMessage.id && msg.id !== assistantMsgId,
@@ -88,33 +82,20 @@ export const ProjectChatClient = ({
         return;
       }
 
-      if (!response.ok) throw new Error("Error en la petición");
-      if (!response.body) throw new Error("No body");
+      const assistantContent = result.response || "";
 
-      // Prepare streaming
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let assistantContent = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const text = decoder.decode(value, { stream: true });
-        assistantContent += text;
-
-        // Actualizar mensaje del asistente en tiempo real
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMsgId
-              ? { ...msg, content: assistantContent }
-              : msg,
-          ),
-        );
-      }
+      // Update assistant message
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMsgId
+            ? { ...msg, content: assistantContent }
+            : msg,
+        ),
+      );
 
       // Emit event to update credits and sidebar
       eventBus.emit(EVENTS.REFRESH_SIDEBAR);
-      // Actualizar créditos locales (optimista o esperar revalidate)
+      // Update local credits optimistically
       if (credits !== undefined) {
         setCredits(credits - 1);
       }
@@ -123,7 +104,7 @@ export const ProjectChatClient = ({
       toast.error("Error generando respuesta");
     } finally {
       setIsLoading(false);
-      router.refresh(); // Refrescar para obtener datos actualizados del servidor si es necesario
+      router.refresh(); // Refresh server data
     }
   };
 
@@ -233,6 +214,7 @@ export const ProjectChatClient = ({
             messages={messages}
             isLoading={isLoading}
             isStreaming={isLoading}
+            chatContext="project"
           />
         )}
       </div>

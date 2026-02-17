@@ -87,6 +87,31 @@ export async function streamProjectChat(params: {
 }
 
 /**
+ * Genera una respuesta completa del chat de ideas (sin streaming)
+ */
+export async function generateIdeasChatCompletion(params: {
+  systemMessages: SystemMessage[];
+  userMessage: UserMessage;
+}): Promise<string> {
+  const stream = await streamIdeasChat(params);
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let result = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      result += decoder.decode(value, { stream: true });
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return result;
+}
+
+/**
  * Genera una respuesta completa del chat de proyecto (sin streaming)
  * Útil para tareas puntuales como generar títulos o resúmenes
  */

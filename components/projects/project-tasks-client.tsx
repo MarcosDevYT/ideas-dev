@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -11,17 +11,16 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { eventBus, EVENTS } from "@/lib/events";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  generateProjectTasksAction,
   createTaskAction,
   toggleTaskStatusAction,
   deleteTaskAction,
-} from "@/actions/project-actions";
+} from "@/actions/projects/project-actions";
 
 interface Task {
   id: string;
@@ -44,11 +43,20 @@ export function ProjectTasksClient({
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [credits, setCredits] = useState(userCredits);
 
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
+
+  useEffect(() => {
+    setCredits(userCredits);
+  }, [userCredits]);
+
   // States for actions
   const [isGenerating, setIsGenerating] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({});
+  const [streamingTasks, setStreamingTasks] = useState<string[]>([]);
 
   // AI Generation Handler
   const handleGenerateTasks = async () => {
@@ -58,21 +66,51 @@ export function ProjectTasksClient({
     }
 
     setIsGenerating(true);
+    setStreamingTasks([]);
     toast.info("Generando tareas con IA...");
 
     try {
-      const result = await generateProjectTasksAction(projectId);
+      const response = await fetch(`/api/projects/${projectId}/tasks/stream`, {
+        method: "POST",
+      });
 
-      if (result.success) {
-        setCredits((prev) => Math.max(0, prev - 1));
-        toast.success("Tareas generadas exitosamente.");
-        router.refresh();
-      } else {
-        toast.error(result.error || "Error al generar tareas.");
+      if (!response.ok) {
+        throw new Error(response.statusText);
       }
+
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const text = decoder.decode(value, { stream: true });
+        fullText += text;
+
+        // Real-time parsing for preview
+        const lines = fullText
+          .split("\n")
+          .filter((line) => line.trim().startsWith("- "))
+          .map((line) => line.trim().substring(2).trim());
+
+        setStreamingTasks(lines);
+      }
+
+      setCredits((prev) => Math.max(0, prev - 1));
+      eventBus.emit(EVENTS.REFRESH_SIDEBAR);
+      toast.success("Tareas generadas exitosamente.");
+
+      // Wait a moment for server background task to complete DB save
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      setStreamingTasks([]); // Clear preview
+      router.refresh(); // Fetch persisted tasks
     } catch (error) {
       console.error(error);
-      toast.error("Ocurrió un error inesperado.");
+      toast.error("Error al generar tareas.");
     } finally {
       setIsGenerating(false);
     }
@@ -194,12 +232,12 @@ export function ProjectTasksClient({
         <div className="md:col-span-3 space-y-4">
           {/* Create Task Form */}
 
-          <form onSubmit={handleCreateTask} className="flex gap-2">
+          <form onSubmit={handleCreateTask} className="w-full flex gap-2">
             <Input
               placeholder="Nueva tarea..."
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
-              className="bg-background/50 border-primary/20 focus-visible:ring-primary/30"
+              className="w-full bg-background/50 border-primary/20 focus-visible:ring-primary/30"
             />
             <Button
               type="submit"
@@ -216,7 +254,22 @@ export function ProjectTasksClient({
 
           {/* Tasks Display */}
           <div className="grid gap-2">
-            {tasks.length === 0 ? (
+            {isGenerating && streamingTasks.length > 0 && (
+              <div className="space-y-2 mb-4">
+                {streamingTasks.map((task, idx) => (
+                  <div
+                    key={`streaming-${idx}`}
+                    className="flex items-center gap-3 p-3 rounded-lg border border-primary/20 bg-primary/5 animate-pulse"
+                  >
+                    <div className="w-5 h-5 rounded-full border-2 border-primary/30" />
+                    <span className="font-medium text-foreground/80">
+                      {task}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {tasks.length === 0 && !isGenerating ? (
               <div className="text-center py-10 opacity-50">
                 <div className="inline-block p-3 rounded-full bg-muted mb-2">
                   <CheckCircle2 className="w-6 h-6" />
@@ -228,7 +281,7 @@ export function ProjectTasksClient({
                 <div
                   key={task.id}
                   className={`
-                                group flex items-center justify-between p-3 rounded-lg border transition-all duration-200
+                                group flex items-center w-full justify-between p-3 rounded-lg border transition-all duration-200
                                 ${
                                   task.status === "completed"
                                     ? "bg-muted/30 border-border text-muted-foreground"
@@ -252,7 +305,7 @@ export function ProjectTasksClient({
                       )}
                     </button>
                     <span
-                      className={`truncate font-medium ${task.status === "completed" ? "line-through opacity-70" : ""}`}
+                      className={`break-words font-medium ${task.status === "completed" ? "line-through opacity-70" : ""}`}
                     >
                       {task.title}
                     </span>
