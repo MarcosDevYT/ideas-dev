@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ui/theme-provider";
-import { JetBrains_Mono, Plus_Jakarta_Sans, Syne } from "next/font/google";
+import { JetBrains_Mono, Space_Grotesk, Syne } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import type { Metadata } from "next";
 import "./globals.css";
@@ -13,7 +13,7 @@ const syne = Syne({
   subsets: ["latin"],
 });
 
-const sans = Plus_Jakarta_Sans({
+const sans = Space_Grotesk({
   variable: "--font-sans",
   subsets: ["latin"],
 });

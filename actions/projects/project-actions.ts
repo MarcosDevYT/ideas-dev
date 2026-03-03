@@ -3,7 +3,6 @@
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { generateProjectTitle } from "@/lib/ai-helper";
 
 // ============================================
 // Projects Actions (CRUD)
@@ -53,23 +52,9 @@ export async function createProjectAction(
   }
 
   try {
-    let finalName = name;
-
-    // If we have the original idea, try to generate a better title
-    if (originalIdea) {
-      const generatedName = await generateProjectTitle(
-        description,
-        originalIdea,
-      );
-
-      if (generatedName && generatedName.length > 0) {
-        finalName = generatedName;
-      }
-    }
-
     const project = await prisma.project.create({
       data: {
-        title: finalName,
+        title: name,
         description,
         userId: session.user.id,
         originalIdea: originalIdea ?? undefined,

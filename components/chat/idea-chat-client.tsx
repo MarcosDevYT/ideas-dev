@@ -34,7 +34,6 @@ export const IdeaChatClient = ({
   userCredits,
   initialTitle,
   initialIsPinned,
-  userId,
 }: IdeaChatClientProps) => {
   const router = useRouter();
 

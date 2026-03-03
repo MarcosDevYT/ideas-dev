@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MoreVertical, Pin, Trash2, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,7 @@ import {
 import { RenameChatDialog } from "@/components/dialogs/rename-chat-dialog";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface ChatItemProps {
   id: string;
@@ -41,19 +42,32 @@ export function ChatItem({
   isSheet,
   onDelete,
 }: ChatItemProps) {
+  const router = useRouter();
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [optimisticPinned, setOptimisticPinned] = useState(isPinned);
+
+  useEffect(() => {
+    setOptimisticPinned(isPinned);
+  }, [isPinned]);
 
   const handleTogglePin = async () => {
+    const newPinnedState = !optimisticPinned;
+    setOptimisticPinned(newPinnedState);
+
     const result =
       type === "chat"
         ? await toggleIdeaChatPinAction(id)
         : await toggleProjectPinAction(id);
 
     if (result.error) {
+      setOptimisticPinned(!newPinnedState);
       toast.error(result.error);
     } else {
-      toast.success(`${isPinned ? "Desanclado" : "Anclado"} exitosamente`);
+      toast.success(
+        `${newPinnedState ? "Anclado" : "Desanclado"} exitosamente`,
+      );
+      router.refresh();
     }
   };
 
@@ -81,6 +95,7 @@ export function ChatItem({
       toast.success(
         `${type === "chat" ? "Chat" : "Proyecto"} eliminado exitosamente`,
       );
+      router.refresh();
     }
   };
 
@@ -99,12 +114,14 @@ export function ChatItem({
             className={
               isSheet
                 ? "text-sm truncate flex-1 max-w-[200px]"
-                : "text-sm truncate flex-1 max-w-[220px]"
+                : optimisticPinned
+                  ? "text-sm truncate flex-1 max-w-[200px]"
+                  : "text-sm truncate flex-1 max-w-[220px]"
             }
           >
             {title}
           </span>
-          {isPinned && <Pin className="size-3 shrink-0 text-primary" />}
+          {optimisticPinned && <Pin className="size-3 shrink-0 text-primary" />}
         </Link>
 
         <DropdownMenu>
@@ -128,7 +145,7 @@ export function ChatItem({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleTogglePin}>
               <Pin className="size-4 mr-2" />
-              {isPinned ? "Desanclar" : "Anclar"}
+              {optimisticPinned ? "Desanclar" : "Anclar"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

@@ -114,25 +114,24 @@ export function ProjectOverviewClient({
                 </div>
               </div>
 
-              {!summary && (
-                <Button
-                  onClick={handleGenerateSummary}
-                  disabled={isGenerating || credits < 1}
-                  className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all hover:scale-105"
-                >
-                  {isGenerating ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Generando...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generar Resumen (1 crédito)
-                    </>
-                  )}
-                </Button>
-              )}
+              <Button
+                onClick={handleGenerateSummary}
+                disabled={isGenerating || credits < 1}
+                className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all hover:scale-105"
+              >
+                {isGenerating ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Generando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {summary ? "Regenerar Resumen" : "Generar Resumen"} (1
+                    crédito)
+                  </>
+                )}
+              </Button>
             </div>
           </CardHeader>
 
