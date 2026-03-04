@@ -96,7 +96,7 @@ export const registerAction = async (
 
     return { success: true };
   } catch (error) {
-    console.log(error);
+    console.error(error);
 
     // Si hay un error, lo mostramos al usuario
     if (error instanceof AuthError) {

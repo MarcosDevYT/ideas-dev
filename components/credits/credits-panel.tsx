@@ -41,10 +41,32 @@ export function CreditsPanel({ initialData }: CreditsPanelProps) {
             {initialData.isAdmin ? "∞" : initialData.credits.toLocaleString()}
             {!initialData.isAdmin && (
               <span className="text-lg text-muted-foreground ml-2">
-                créditos
+                créditos totales
               </span>
             )}
           </p>
+          {!initialData.isAdmin && (
+            <div className="flex flex-col sm:flex-row gap-4 mt-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5 bg-background border px-3 py-1.5 rounded-md">
+                <span className="w-2 h-2 rounded-full bg-primary/70"></span>
+                <span>
+                  Plan Mensual:{" "}
+                  <strong className="text-foreground">
+                    {initialData.planCredits.toLocaleString()}
+                  </strong>
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-background border px-3 py-1.5 rounded-md">
+                <span className="w-2 h-2 rounded-full bg-blue-500/70"></span>
+                <span>
+                  Extra (No expiran):{" "}
+                  <strong className="text-foreground">
+                    {initialData.extraCredits.toLocaleString()}
+                  </strong>
+                </span>
+              </div>
+            </div>
+          )}
           {initialData.isAdmin && (
             <p className="text-sm text-muted-foreground mt-1">
               Créditos ilimitados (Admin)
@@ -97,7 +119,7 @@ export function CreditsPanel({ initialData }: CreditsPanelProps) {
         </div>
 
         {/* Botón de Compra - Client Component */}
-        <PurchaseCreditsButton userId={initialData.isAdmin ? "" : "user"} />
+        <PurchaseCreditsButton />
 
         <Separator />
 

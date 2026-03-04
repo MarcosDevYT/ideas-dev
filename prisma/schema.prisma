@@ -48,9 +48,11 @@ model User {
   
   // IdeasDev specific fields
   stack               String[]  @default([]) // Stack tecnológico preferido (array de tecnologías)
+  // Roles y Créditos
   role                String?   // Rol del usuario
-  credits             Int       @default(100) // Créditos disponibles
-  creditsResetAt      DateTime  @default(now()) @map("credits_reset_at") // Última recarga de créditos
+  planCredits         Int       @default(50) @map("plan_credits") // Créditos de la suscripción mensual
+  extraCredits        Int       @default(0) @map("extra_credits") // Créditos comprados o de regalo
+  creditsResetAt      DateTime  @default(now()) @map("credits_reset_at") // Fecha de vencimiento de planCredits
   isAdmin             Boolean   @default(false) @map("is_admin") // Si es administrador
   
   accounts            Account[]

@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import { ProjectOverviewClient } from "@/components/projects/project-overview-client";
+import { IdeaDetails } from "@/components/projects/idea-accordion";
 
 interface ProjectOverviewPageProps {
   params: Promise<{
@@ -29,7 +30,8 @@ export default async function ProjectOverviewPage({
     include: {
       user: {
         select: {
-          credits: true,
+          planCredits: true,
+          extraCredits: true,
         },
       },
     },
@@ -51,8 +53,10 @@ export default async function ProjectOverviewPage({
           projectId={project.id}
           initialSummary={project.aiSummary}
           description={project.description}
-          originalIdea={project.originalIdea}
-          userCredits={project.user.credits || 0}
+          originalIdea={project.originalIdea as unknown as IdeaDetails}
+          userCredits={
+            (project.user.planCredits || 0) + (project.user.extraCredits || 0)
+          }
         />
       </div>
     </div>

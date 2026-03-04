@@ -22,14 +22,15 @@ import { getIdeaChatsAction } from "@/actions/ideas/chat-actions";
 import { getProjectsAction } from "@/actions/projects/project-actions";
 import { getUserCreditsAction } from "@/actions/credits";
 import { eventBus, EVENTS } from "@/lib/events";
-import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { SheetItems, SidebarItems } from "./SidebarItems";
 import { Badge } from "../ui/badge";
 import { NewChatLink } from "@/components/links/new-chat-link";
 import { AuthComponent } from "../authComponents/AuthComponent";
-import { User } from "next-auth";
+import { Session, User } from "next-auth";
 import { ThemeButton } from "../ui/theme-button";
+
+type CustomUser = Session["user"];
 
 export interface ChatData {
   id: string;
@@ -48,18 +49,16 @@ export interface ProjectData {
   updatedAt: Date;
 }
 
-export const Sidebar = () => {
-  // Sesión
-  const session = useSession();
-  const user = session?.data?.user;
-
+export const Sidebar = ({ user }: { user?: CustomUser }) => {
   // Estados
-  const [credits, setCredits] = useState(user?.credits || 0);
+  const [localCredits, setLocalCredits] = useState<number | null>(null);
+  const credits = localCredits !== null ? localCredits : user?.credits || 0;
+
   const [chats, setChats] = useState<ChatData[]>([]);
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [isLoadingChats, setIsLoadingChats] = useState(true);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const isMobile = useMediaQueryCustom("(max-width: 768px)");
 
@@ -90,12 +89,13 @@ export const Sidebar = () => {
   };
 
   useEffect(() => {
-    if (!user?.id) return;
+    const userId = user?.id;
+    if (!userId) return;
 
     const loadData = async () => {
       // Cargamos chats
       setIsLoadingChats(true);
-      const chatsResult = await getIdeaChatsAction({ userId: user.id });
+      const chatsResult = await getIdeaChatsAction({ userId });
       setIsLoadingChats(false);
       if (chatsResult.success && chatsResult.data) {
         setChats(chatsResult.data);
@@ -103,7 +103,7 @@ export const Sidebar = () => {
 
       // Cargamos proyectos
       setIsLoadingProjects(true);
-      const projectsResult = await getProjectsAction({ userId: user.id });
+      const projectsResult = await getProjectsAction({ userId });
       setIsLoadingProjects(false);
       if (projectsResult.success && projectsResult.data) {
         setProjects(projectsResult.data);
@@ -112,7 +112,7 @@ export const Sidebar = () => {
       // Cargamos créditos actualizados
       const creditsResult = await getUserCreditsAction();
       if (creditsResult.success && typeof creditsResult.data === "number") {
-        setCredits(creditsResult.data);
+        setLocalCredits(creditsResult.data);
       }
     };
 

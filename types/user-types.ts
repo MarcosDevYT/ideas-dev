@@ -9,10 +9,13 @@ export type UserWithDetails = Prisma.UserGetPayload<{
     emailVerified: true;
     role: true;
     stack: true;
-    credits: true;
+    planCredits: true;
+    extraCredits: true;
     isAdmin: true;
+    subscription: true;
   };
 }> & {
   ideaChatsCount: number;
   projectsCount: number;
+  credits: number;
 };

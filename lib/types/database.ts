@@ -84,6 +84,8 @@ export interface ChatRequest {
 
 export interface CreditBalance {
   available: number;
+  planCredits: number;
+  extraCredits: number;
   isAdmin: boolean;
   resetAt: Date;
 }

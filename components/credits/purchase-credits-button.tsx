@@ -5,12 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { PurchaseCreditsDialog } from "./purchase-credits-dialog";
 import { useRouter } from "next/navigation";
+import { eventBus, EVENTS } from "@/lib/events";
 
-interface PurchaseCreditsButtonProps {
-  userId: string;
-}
-
-export function PurchaseCreditsButton({ userId }: PurchaseCreditsButtonProps) {
+export function PurchaseCreditsButton() {
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const router = useRouter();
 
@@ -18,6 +15,8 @@ export function PurchaseCreditsButton({ userId }: PurchaseCreditsButtonProps) {
     setShowPurchaseDialog(false);
     // Revalidar la página para obtener datos actualizados
     router.refresh();
+    // Actualizar sidebar
+    eventBus.emit(EVENTS.REFRESH_SIDEBAR);
   };
 
   return (

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+import { enrichTransactionsWithTitles } from "@/actions/credits/service";
 
 /**
  * GET /api/credits/transactions
@@ -53,8 +54,11 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const enrichedTransactions =
+      await enrichTransactionsWithTitles(transactions);
+
     return NextResponse.json({
-      transactions,
+      transactions: enrichedTransactions,
       pagination: {
         page,
         limit,

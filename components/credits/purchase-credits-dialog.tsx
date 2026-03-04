@@ -72,7 +72,7 @@ export function PurchaseCreditsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-h-[90vh] w-full md:max-w-3xl lg:max-w-4xl xl:max-w-5xl">
         <DialogHeader>
           <DialogTitle>Comprar Créditos</DialogTitle>
           <DialogDescription>
@@ -80,7 +80,7 @@ export function PurchaseCreditsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 py-4 px-2 max-h-[calc(100vh-200px)] overflow-y-auto">
           {Object.values(CREDIT_PACKAGES).map((pkg) => (
             <Card
               key={pkg.id}

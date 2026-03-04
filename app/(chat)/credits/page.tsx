@@ -20,7 +20,7 @@ export default async function CreditsPage() {
   ]);
 
   return (
-    <div className="container max-w-6xl mx-auto py-8 space-y-8">
+    <div className="container max-w-6xl mx-auto px-4 py-8 space-y-8">
       <div>
         <h1 className="text-3xl font-bold">Gestión de Créditos</h1>
         <p className="text-muted-foreground mt-2">

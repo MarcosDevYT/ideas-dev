@@ -199,7 +199,7 @@ export function ChatMessage({
             {ideaData && (
               <div className="flex flex-col gap-6 w-full animate-in fade-in duration-500">
                 {ideaData.map((idea, idx) => (
-                  <IdeaMessageCard key={idx} data={idea} />
+                  <IdeaMessageCard key={idx} data={idea as any} />
                 ))}
               </div>
             )}

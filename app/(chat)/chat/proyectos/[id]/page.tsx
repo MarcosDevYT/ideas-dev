@@ -16,10 +16,6 @@ export default async function ProjectChatPage(props: { params: Params }) {
   const userId = session.user.id;
   const projectId = params.id;
 
-  console.log("📄 [ProjectChatPage] INICIO - Renderizando página");
-  console.log("🆔 [ProjectChatPage] IDs:", { projectId, userId });
-  console.log("⏰ [ProjectChatPage] Timestamp:", new Date().toISOString());
-
   // 1. Obtener proyecto
   const project = await prisma.project.findFirst({
     where: {
@@ -28,10 +24,6 @@ export default async function ProjectChatPage(props: { params: Params }) {
     },
   });
 
-  console.log(
-    "📦 [ProjectChatPage] Proyecto encontrado:",
-    project ? "SÍ" : "NO",
-  );
   if (project) {
     console.log("📋 [ProjectChatPage] Detalles del proyecto:", {
       id: project.id,
@@ -49,7 +41,7 @@ export default async function ProjectChatPage(props: { params: Params }) {
   // 2. Obtener créditos del usuario
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { credits: true },
+    select: { planCredits: true, extraCredits: true },
   });
 
   // 3. Obtener historial de mensajes
@@ -75,7 +67,7 @@ export default async function ProjectChatPage(props: { params: Params }) {
     <ProjectChatClient
       initialMessages={formattedMessages}
       projectId={project.id}
-      userCredits={user?.credits ?? 0}
+      userCredits={(user?.planCredits || 0) + (user?.extraCredits || 0)}
     />
   );
 }

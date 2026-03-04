@@ -1,3 +1,4 @@
+import { Subscription } from "@prisma/client";
 import NextAuth, { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
@@ -12,11 +13,15 @@ declare module "next-auth" {
       role?: string | null;
       stack: string[];
       // Credits
+      planCredits: number;
+      extraCredits: number;
       credits: number;
       isAdmin: boolean;
       // Statistics
       ideaChatsCount: number;
       projectsCount: number;
+      // Subscription
+      subscription?: Subscription | null;
     } & DefaultSession["user"];
   }
 }
@@ -30,10 +35,14 @@ declare module "next-auth/jwt" {
     role?: string | null;
     stack?: string[];
     // Credits
+    planCredits?: number;
+    extraCredits?: number;
     credits?: number;
     isAdmin?: boolean;
     // Statistics
     ideaChatsCount?: number;
     projectsCount?: number;
+    // Subscription
+    subscription?: Subscription | null;
   }
 }

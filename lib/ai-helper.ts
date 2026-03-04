@@ -1,12 +1,12 @@
 import { generateProjectChatCompletion, streamProjectChat } from "./ai-client";
 
 /**
- * Genera un título corto, simple y amigable para un proyecto.
- * @param description La descripción básica.
+ * Genera un título corto y descriptivo para un chat de ideas basado en el prompt del usuario.
+ * @param prompt El mensaje o prompt inicial del usuario.
  * @param ideaContext (Opcional) El objeto JSON completo de la idea para más contexto.
  */
-export async function generateProjectTitle(
-  description: string,
+export async function generateIdeaChatTitle(
+  prompt: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ideaContext?: any,
 ): Promise<string> {
@@ -20,18 +20,18 @@ export async function generateProjectTitle(
         {
           role: "system",
           content:
-            "Eres un experto en naming de productos digitales. Tu tarea es generar un nombre SIMPLE, CORT Y AMIGABLE (1-3 palabras máximo) para un proyecto SaaS. Evita jergas corporativas complejas. Prefiere nombres que suenen a startups modernas (ej. 'TaskFlow', 'IdeaBox', 'QuickGantt'). Solo devuelve el nombre, nada más.",
+            "Eres un experto en resumir intenciones de usuarios. Tu tarea es generar un título MUY CORTO (2 a 5 palabras máximo) que resuma de qué trata la idea o pregunta del usuario. Debe ser descriptivo y directo, sin comillas ni signos de puntuación innecesarios. Solo devuelve el título, nada más.",
         },
         {
           role: "user",
-          content: `Genera un nombre para este proyecto:\nDescripción: "${description}"${contextString}`,
+          content: `Genera un título corto para esta idea o prompt:\n"${prompt}"${contextString}`,
         },
       ],
     });
 
     return response.trim().replace(/^["']|["']$/g, "");
   } catch (error) {
-    console.error("Error generating project title:", error);
+    console.error("Error generating idea chat title:", error);
     return ""; // Retornamos cadena vacía para usar el fallback
   }
 }

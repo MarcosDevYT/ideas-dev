@@ -24,10 +24,6 @@ export default async function ProjectLayout({
   const userId = session.user.id;
   const projectId = resolvedParams.id;
 
-  console.log("🏗️ [ProjectLayout] INICIO - Renderizando layout");
-  console.log("🆔 [ProjectLayout] IDs:", { projectId, userId });
-  console.log("⏰ [ProjectLayout] Timestamp:", new Date().toISOString());
-
   const project = await prisma.project.findFirst({
     where: {
       id: projectId,
@@ -40,7 +36,6 @@ export default async function ProjectLayout({
     },
   });
 
-  console.log("📦 [ProjectLayout] Proyecto encontrado:", project ? "SÍ" : "NO");
   if (project) {
     console.log("📋 [ProjectLayout] Detalles del proyecto:", {
       id: project.id,
@@ -52,8 +47,6 @@ export default async function ProjectLayout({
     console.error("❌ [ProjectLayout] Proyecto no encontrado - mostrando 404");
     notFound();
   }
-
-  console.log("✅ [ProjectLayout] Layout renderizado correctamente");
 
   return (
     <div className="flex flex-col h-full bg-background/50">

@@ -28,6 +28,7 @@ import { ReportBugDialog } from "@/components/dialogs/report-bug-dialog";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { UserWithDetails } from "@/types/user-types";
+import { SUBSCRIPTION_PLANS, PlanId } from "@/actions/credits/constants";
 
 interface UserDropdownProps {
   user: UserWithDetails;
@@ -59,6 +60,39 @@ export function UserDropdown({
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const getPlanId = (): PlanId => {
+    if (user.isAdmin) return "PREMIUM";
+    if (user.subscription?.status === "active") {
+      const periodEnd = user.subscription.currentPeriodEnd;
+      if (periodEnd && new Date(periodEnd) < new Date()) {
+        return "FREE";
+      }
+      const priceId = user.subscription.stripePriceId;
+      if (priceId === "price_mock_basic") return "BASIC";
+      if (priceId === "price_mock_pro") return "PRO";
+      if (priceId === "price_mock_premium") return "PREMIUM";
+      return "PRO";
+    }
+    return "FREE";
+  };
+
+  const getPlanName = () => {
+    if (user.isAdmin) return "Admin";
+    if (user.subscription?.status === "active") {
+      const periodEnd = user.subscription.currentPeriodEnd;
+      if (periodEnd && new Date(periodEnd) < new Date()) {
+        return "Gratis"; // Expirada
+      }
+      const priceId = user.subscription.stripePriceId;
+      if (priceId === "price_mock_basic") return SUBSCRIPTION_PLANS.BASIC.name;
+      if (priceId === "price_mock_pro") return SUBSCRIPTION_PLANS.PRO.name;
+      if (priceId === "price_mock_premium")
+        return SUBSCRIPTION_PLANS.PREMIUM.name;
+      return SUBSCRIPTION_PLANS.PRO.name; // Fallback legacy
+    }
+    return SUBSCRIPTION_PLANS.FREE.name;
   };
 
   return (
@@ -120,10 +154,22 @@ export function UserDropdown({
               <p className="text-xs text-muted-foreground font-normal">
                 {user.email}
               </p>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center justify-between gap-2 mt-2">
                 <span className="text-xs text-muted-foreground">Créditos:</span>
-                <Badge variant={getCreditsBadgeVariant()} className="text-xs">
-                  {user.credits || 0} restantes
+                <Badge
+                  variant={getCreditsBadgeVariant()}
+                  className="text-[10px] px-1.5 py-0 h-4"
+                >
+                  {user.credits || 0}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between gap-2 mt-1 mb-1">
+                <span className="text-xs text-muted-foreground">Plan:</span>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20"
+                >
+                  {getPlanName()}
                 </Badge>
               </div>
             </div>
@@ -195,6 +241,7 @@ export function UserDropdown({
       <UpgradePlanDialog
         open={showUpgradeDialog}
         onOpenChange={setShowUpgradeDialog}
+        activePlanId={getPlanId()}
       />
       <ReportBugDialog open={showBugDialog} onOpenChange={setShowBugDialog} />
     </>

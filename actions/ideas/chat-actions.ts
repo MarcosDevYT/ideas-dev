@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { generateIdeasChatCompletion } from "@/lib/ai-client";
 import { buildIdeasSystemPrompt } from "@/lib/prompts/ideas";
 import { hasCredits, consumeCredits } from "@/actions/credits/service";
+import { generateIdeaChatTitle } from "@/lib/ai-helper";
 
 // ============================================
 // Idea Chats CRUD
@@ -86,9 +87,11 @@ export async function createIdeaChatAction({
   initialMessage?: string;
 }) {
   try {
+    const IdeaName = await generateIdeaChatTitle(title, initialMessage);
+
     const ideaChat = await prisma.ideaChat.create({
       data: {
-        title,
+        title: IdeaName,
         userId,
         messages: initialMessage
           ? {

@@ -50,8 +50,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           emailVerified: true,
           role: true,
           stack: true,
-          credits: true,
+          planCredits: true,
+          extraCredits: true,
           isAdmin: true,
+          subscription: true,
           _count: {
             select: {
               ideaChats: true,
@@ -70,13 +72,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       token.role = existingUser.role;
       token.stack = existingUser.stack;
 
-      // Credits
-      token.credits = existingUser.credits;
+      // Credits (Calculated virtual field)
+      token.planCredits = existingUser.planCredits;
+      token.extraCredits = existingUser.extraCredits;
+      token.credits =
+        (existingUser.planCredits || 0) + (existingUser.extraCredits || 0);
       token.isAdmin = existingUser.isAdmin;
 
       // Statistics
       token.ideaChatsCount = existingUser._count.ideaChats;
       token.projectsCount = existingUser._count.projects;
+
+      // Subscription
+      token.subscription = existingUser.subscription;
 
       return token;
     },
@@ -93,12 +101,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.stack = (token.stack as string[]) || [];
 
         // Credits
+        session.user.planCredits = (token.planCredits as number) || 0;
+        session.user.extraCredits = (token.extraCredits as number) || 0;
         session.user.credits = (token.credits as number) || 0;
         session.user.isAdmin = (token.isAdmin as boolean) || false;
 
         // Statistics
         session.user.ideaChatsCount = (token.ideaChatsCount as number) || 0;
         session.user.projectsCount = (token.projectsCount as number) || 0;
+
+        // Subscription
+        session.user.subscription = token.subscription as any;
       }
 
       return session;

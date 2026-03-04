@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import type { CreditBalance, CreditConsumption } from "@/lib/types/database";
-import { CREDIT_LIMITS, CREDIT_MESSAGES } from "./constants";
+import { CREDIT_MESSAGES, SUBSCRIPTION_PLANS } from "./constants";
 import { auth } from "@/auth";
 
 // ============================================
@@ -14,7 +14,8 @@ export async function getCreditBalance(userId: string): Promise<CreditBalance> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
-      credits: true,
+      planCredits: true,
+      extraCredits: true,
       isAdmin: true,
       creditsResetAt: true,
     },
@@ -32,18 +33,28 @@ export async function getCreditBalance(userId: string): Promise<CreditBalance> {
     // Fetch updated credits
     const updatedUser = await prisma.user.findUnique({
       where: { id: userId },
-      select: { credits: true, isAdmin: true, creditsResetAt: true },
+      select: {
+        planCredits: true,
+        extraCredits: true,
+        isAdmin: true,
+        creditsResetAt: true,
+      },
     });
 
     return {
-      available: updatedUser?.credits ?? 0,
+      available:
+        (updatedUser?.planCredits ?? 0) + (updatedUser?.extraCredits ?? 0),
+      planCredits: updatedUser?.planCredits ?? 0,
+      extraCredits: updatedUser?.extraCredits ?? 0,
       isAdmin: updatedUser?.isAdmin ?? false,
       resetAt: updatedUser?.creditsResetAt ?? new Date(),
     };
   }
 
   return {
-    available: user.credits,
+    available: user.planCredits + user.extraCredits,
+    planCredits: user.planCredits,
+    extraCredits: user.extraCredits,
     isAdmin: user.isAdmin,
     resetAt: user.creditsResetAt ?? new Date(),
   };
@@ -97,10 +108,21 @@ export async function consumeCredits(
 
   // Consume credits in a transaction
   try {
+    let newPlanCredits = balance.planCredits;
+    let newExtraCredits = balance.extraCredits;
+
+    if (balance.planCredits >= amount) {
+      newPlanCredits -= amount;
+    } else {
+      const remainingCost = amount - balance.planCredits;
+      newPlanCredits = 0;
+      newExtraCredits -= remainingCost;
+    }
+
     const [updatedUser] = await prisma.$transaction([
       prisma.user.update({
         where: { id: userId },
-        data: { credits: { decrement: amount } },
+        data: { planCredits: newPlanCredits, extraCredits: newExtraCredits },
       }),
       prisma.creditTransaction.create({
         data: {
@@ -114,7 +136,7 @@ export async function consumeCredits(
 
     return {
       success: true,
-      remaining: updatedUser.credits,
+      remaining: updatedUser.planCredits + updatedUser.extraCredits,
     };
   } catch (error) {
     console.error("Error consuming credits:", error);
@@ -160,7 +182,7 @@ export async function addCredits(
   const [updatedUser] = await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
-      data: { credits: { increment: amount } },
+      data: { extraCredits: { increment: amount } }, // Purchases & ad-hocs go to extraCredits
     }),
     prisma.creditTransaction.create({
       data: {
@@ -172,7 +194,7 @@ export async function addCredits(
     }),
   ]);
 
-  return updatedUser.credits;
+  return updatedUser.planCredits + updatedUser.extraCredits;
 }
 
 // ============================================
@@ -181,8 +203,12 @@ export async function addCredits(
 
 /**
  * Reset monthly credits for a user
+ * @param forcePlanId Optional PlanId to override DB check (useful on immediate plan upgrade)
  */
-export async function resetMonthlyCredits(userId: string): Promise<void> {
+export async function resetMonthlyCredits(
+  userId: string,
+  forcePlanId?: keyof typeof SUBSCRIPTION_PLANS,
+): Promise<void> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { subscription: true },
@@ -198,21 +224,28 @@ export async function resetMonthlyCredits(userId: string): Promise<void> {
   }
 
   // Determine credit amount based on subscription
-  const creditAmount =
-    user.subscription?.status === "active"
-      ? CREDIT_LIMITS.PAID_TIER
-      : CREDIT_LIMITS.FREE_TIER;
+  let planId: keyof typeof SUBSCRIPTION_PLANS = forcePlanId || "FREE";
+
+  if (!forcePlanId && user.subscription?.status === "active") {
+    // Extract plan from stripe price ID (e.g., price_mock_premium -> PREMIUM)
+    const priceId = user.subscription.stripePriceId || "";
+    if (priceId.includes("basic")) planId = "BASIC";
+    else if (priceId.includes("pro")) planId = "PRO";
+    else if (priceId.includes("premium")) planId = "PREMIUM";
+  }
+
+  const creditAmount = SUBSCRIPTION_PLANS[planId]?.amount || 50;
 
   // Calculate next reset date (1 month from now)
   const nextResetDate = new Date();
   nextResetDate.setMonth(nextResetDate.getMonth() + 1);
 
-  // Reset credits
+  // Reset plan credits (extraCredits are UNTOUCHED)
   await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
       data: {
-        credits: creditAmount,
+        planCredits: creditAmount,
         creditsResetAt: nextResetDate,
       },
     }),
@@ -221,7 +254,7 @@ export async function resetMonthlyCredits(userId: string): Promise<void> {
         userId,
         amount: creditAmount,
         type: "monthly_reset",
-        description: `Monthly credit reset: ${creditAmount} credits`,
+        description: `Recarga de plan ${SUBSCRIPTION_PLANS[planId].name}: ${creditAmount} créditos`,
       },
     }),
   ]);
@@ -234,19 +267,22 @@ export async function initializeUserCredits(userId: string): Promise<void> {
   const nextResetDate = new Date();
   nextResetDate.setMonth(nextResetDate.getMonth() + 1);
 
+  const freeCredits = SUBSCRIPTION_PLANS.FREE.amount;
+
   await prisma.user.update({
     where: { id: userId },
     data: {
-      credits: CREDIT_LIMITS.FREE_TIER,
+      planCredits: freeCredits,
+      extraCredits: 0,
       creditsResetAt: nextResetDate,
     },
   });
 
   await createCreditTransaction(
     userId,
-    CREDIT_LIMITS.FREE_TIER,
+    freeCredits,
     "monthly_reset",
-    "Initial credits for new user",
+    "Créditos iniciales plan Gratis",
   );
 }
 
@@ -397,4 +433,62 @@ export async function validateCredits(requiredAmount: number = 1) {
   }
 
   return { session, balance, isAdmin: false };
+}
+
+// ============================================
+// UI Formatting Helpers
+// ============================================
+
+/**
+ * Replace raw Chat IDs with their actual titles in transaction descriptions
+ */
+export async function enrichTransactionsWithTitles<
+  T extends { description: string | null },
+>(transactions: T[]): Promise<T[]> {
+  const ideaChatIds = new Set<string>();
+  const projectChatIds = new Set<string>();
+
+  // Use optional chaining carefully since T might not be fully known, but we constrained it
+  transactions.forEach((t) => {
+    if (t.description?.startsWith("Idea Chat: ")) {
+      ideaChatIds.add(t.description.replace("Idea Chat: ", "").trim());
+    } else if (t.description?.startsWith("Project Chat: ")) {
+      projectChatIds.add(t.description.replace("Project Chat: ", "").trim());
+    }
+  });
+
+  const [ideaChats, projects] = await Promise.all([
+    ideaChatIds.size > 0
+      ? prisma.ideaChat.findMany({
+          where: { id: { in: Array.from(ideaChatIds) } },
+          select: { id: true, title: true },
+        })
+      : Promise.resolve([]),
+    projectChatIds.size > 0
+      ? prisma.project.findMany({
+          where: { id: { in: Array.from(projectChatIds) } },
+          select: { id: true, title: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const ideaMap = new Map(ideaChats.map((c) => [c.id, c.title]));
+  const projectMap = new Map(projects.map((p) => [p.id, p.title]));
+
+  return transactions.map((t) => {
+    if (t.description?.startsWith("Idea Chat: ")) {
+      const id = t.description.replace("Idea Chat: ", "").trim();
+      const title = ideaMap.get(id);
+      if (title) {
+        return { ...t, description: `Chat de idea: ${title}` };
+      }
+    } else if (t.description?.startsWith("Project Chat: ")) {
+      const id = t.description.replace("Project Chat: ", "").trim();
+      const title = projectMap.get(id);
+      if (title) {
+        return { ...t, description: `Chat de proyecto: ${title}` };
+      }
+    }
+    return t;
+  });
 }

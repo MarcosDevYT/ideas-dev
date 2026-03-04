@@ -27,7 +27,7 @@ export default async function ProjectTasksPage({
       id: projectId,
     },
     include: {
-      user: { select: { credits: true } },
+      user: { select: { planCredits: true, extraCredits: true } },
     },
   });
 
@@ -51,7 +51,9 @@ export default async function ProjectTasksPage({
         <ProjectTasksClient
           projectId={project.id}
           initialTasks={tasks}
-          userCredits={project.user.credits || 0}
+          userCredits={
+            (project.user.planCredits || 0) + (project.user.extraCredits || 0)
+          }
         />
       </div>
     </div>

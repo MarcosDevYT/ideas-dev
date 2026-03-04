@@ -11,55 +11,62 @@ import {
 } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { Check } from "lucide-react";
+import { toast } from "sonner";
+import { useTransition } from "react";
+import { useSession } from "next-auth/react";
+import { upgradeUserPlanAction } from "@/actions/credits";
+import { SUBSCRIPTION_PLANS, PlanId } from "@/actions/credits/constants";
 
 interface UpgradePlanDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  activePlanId?: PlanId; // Plan ID passed from parent
 }
-
-const plans = [
-  {
-    name: "Gratis",
-    price: "$0",
-    credits: "100 créditos/mes",
-    features: [
-      "Asistencia IA básica",
-      "Hasta 5 proyectos",
-      "Soporte comunitario",
-    ],
-  },
-  {
-    name: "Pro",
-    price: "$19",
-    credits: "1000 créditos/mes",
-    features: [
-      "Asistencia IA avanzada",
-      "Proyectos ilimitados",
-      "Soporte prioritario",
-      "Integraciones personalizadas",
-    ],
-    popular: true,
-  },
-  {
-    name: "Empresarial",
-    price: "Personalizado",
-    credits: "Créditos ilimitados",
-    features: [
-      "Todo lo de Pro",
-      "Soporte dedicado",
-      "Entrenamiento IA personalizado",
-      "Garantía SLA",
-    ],
-  },
-];
 
 export function UpgradePlanDialog({
   open,
   onOpenChange,
+  activePlanId,
 }: UpgradePlanDialogProps) {
+  const plans = Object.values(SUBSCRIPTION_PLANS);
+  const [isPending, startTransition] = useTransition();
+  const { data: session, update } = useSession();
+
+  const currentPriceId = session?.user?.subscription?.stripePriceId || "";
+  let sessionPlanId: PlanId = "FREE";
+  if (session?.user?.subscription?.status === "active") {
+    if (currentPriceId.includes("basic")) sessionPlanId = "BASIC";
+    else if (currentPriceId.includes("pro")) sessionPlanId = "PRO";
+    else if (currentPriceId.includes("premium")) sessionPlanId = "PREMIUM";
+  }
+
+  const currentPlanId = activePlanId || sessionPlanId;
+
+  const handleUpgrade = (planId: PlanId) => {
+    if (planId === "FREE") {
+      onOpenChange(false);
+      return;
+    }
+
+    startTransition(async () => {
+      const toastId = toast.loading("Actualizando plan...");
+      const result = await upgradeUserPlanAction(planId);
+      toast.dismiss(toastId);
+
+      if (result.success) {
+        await update(); // Refresca la sesión en tiempo real
+        toast.success(
+          `Plan actualizado a ${SUBSCRIPTION_PLANS[planId].name} correctamente`,
+        );
+        onOpenChange(false);
+      } else {
+        toast.error("Hubo un error al actualizar el plan");
+      }
+    });
+  };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl md:max-w-2xl lg:max-w-4xl 2xl:max-w-6xl">
+      <DialogContent className="max-h-[calc(100vh-200px)] w-full sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl">
         <DialogHeader>
           <DialogTitle>Mejora tu Plan</DialogTitle>
           <DialogDescription>
@@ -67,11 +74,11 @@ export function UpgradePlanDialog({
             funciones.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4 md:grid-cols-3">
+        <div className="grid gap-4 py-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 max-h-[calc(100vh-200px)] overflow-y-auto px-2">
           {plans.map((plan) => (
             <Card
               key={plan.name}
-              className={`p-6 relative ${
+              className={`mx-auto w-76 sm:w-full md:w-76 lg:w-full p-6 relative ${
                 plan.popular ? "border-primary shadow-lg" : ""
               }`}
             >
@@ -103,12 +110,14 @@ export function UpgradePlanDialog({
               <Button
                 className="w-full mt-auto"
                 variant={plan.popular ? "default" : "outline"}
-                onClick={() => {
-                  // TODO: Implement Stripe integration
-                  onOpenChange(false);
-                }}
+                disabled={isPending || plan.id === currentPlanId}
+                onClick={() => handleUpgrade(plan.id)}
               >
-                {plan.name === "Gratis" ? "Plan Actual" : "Mejorar"}
+                {plan.id === currentPlanId
+                  ? "Plan Actual"
+                  : plan.id === "FREE"
+                    ? "Cancelar suscripción"
+                    : "Mejorar"}
               </Button>
             </Card>
           ))}

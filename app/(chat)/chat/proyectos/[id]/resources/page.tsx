@@ -27,7 +27,7 @@ export default async function ProjectResourcesPage({
       id: projectId,
     },
     include: {
-      user: { select: { credits: true } },
+      user: { select: { planCredits: true, extraCredits: true } },
     },
   });
 
@@ -51,7 +51,9 @@ export default async function ProjectResourcesPage({
         <ProjectResourcesClient
           projectId={project.id}
           initialResources={resources}
-          userCredits={project.user.credits || 0}
+          userCredits={
+            (project.user.planCredits || 0) + (project.user.extraCredits || 0)
+          }
         />
       </div>
     </div>

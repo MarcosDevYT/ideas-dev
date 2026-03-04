@@ -1,8 +1,10 @@
-import { LogoComponent } from "../LogoComponent";
 import { UserWithDetails } from "@/types/user-types";
-import { buttonVariants } from "../ui/button";
-import Link from "next/link";
 import { Navbar } from "./navbar";
+import { HeroSection } from "./home/hero-section";
+import { FeaturesBento } from "./home/features-bento";
+import { HowItWorks } from "./home/how-it-works";
+import { TargetAudience } from "./home/target-audience";
+import { CtaFooter } from "./home/cta-footer";
 
 interface HomeProps {
   user: UserWithDetails;
@@ -10,39 +12,15 @@ interface HomeProps {
 
 export const Home = ({ user }: HomeProps) => {
   return (
-    <>
+    <div className="flex flex-col min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar user={user} />
-      <main className="flex flex-col items-center justify-center min-h-screen space-y-8 p-4 text-center">
-        <div className="space-y-4 max-w-2xl">
-          <LogoComponent className="text-6xl" />
-          <p className="text-lg text-muted-foreground">
-            Genera, desarrolla y gestiona tus ideas de proyectos con el poder de
-            la IA.
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Link
-            href="/chat"
-            className={buttonVariants({
-              size: "lg",
-              className: "w-full sm:w-auto",
-            })}
-          >
-            Comenzar Chat
-          </Link>
-          <Link
-            href="/credits"
-            className={buttonVariants({
-              variant: "outline",
-              size: "lg",
-              className: "w-full sm:w-auto",
-            })}
-          >
-            Gestionar Créditos
-          </Link>
-        </div>
+      <main className="flex-1 w-full">
+        <HeroSection />
+        <FeaturesBento />
+        <HowItWorks />
+        <TargetAudience />
+        <CtaFooter />
       </main>
-    </>
+    </div>
   );
 };

@@ -28,6 +28,7 @@ export function ChatMessagesList({
   const { containerRef, scrollToBottom } = useChatScroll();
   const [visibleCount, setVisibleCount] = useState(4);
   const prevLengthRef = useRef(messages.length);
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     if (messages.length > prevLengthRef.current) {
@@ -38,7 +39,17 @@ export function ChatMessagesList({
   }, [messages.length]);
 
   useEffect(() => {
-    scrollToBottom();
+    if (isInitialMount.current) {
+      if (messages.length > 0) {
+        scrollToBottom(false);
+        // Pequeño delay para evitar que se dispare onScroll al renderizar de golpe
+        setTimeout(() => {
+          isInitialMount.current = false;
+        }, 100);
+      }
+    } else {
+      scrollToBottom(true);
+    }
   }, [messages, scrollToBottom]);
 
   if (messages.length === 0 && !isLoading) {
@@ -49,6 +60,8 @@ export function ChatMessagesList({
   const hasMore = visibleCount < messages.length;
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isInitialMount.current) return;
+
     const target = e.currentTarget;
     if (target.scrollTop < 10 && hasMore) {
       const previousScrollHeight = target.scrollHeight;

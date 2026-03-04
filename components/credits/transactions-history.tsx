@@ -39,9 +39,10 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export function TransactionsHistory({ initialData }: TransactionsHistoryProps) {
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [limit, setLimit] = useState<number>(10);
 
   // Construir URL de la API
-  const apiUrl = `/api/credits/transactions?page=${page}&limit=20${typeFilter !== "all" ? `&type=${typeFilter}` : ""}`;
+  const apiUrl = `/api/credits/transactions?page=${page}&limit=${limit}${typeFilter !== "all" ? `&type=${typeFilter}` : ""}`;
 
   // SWR con datos iniciales - deduplicación automática
   const { data, isLoading } = useSWR<TransactionsData>(apiUrl, fetcher, {
@@ -148,11 +149,31 @@ export function TransactionsHistory({ initialData }: TransactionsHistoryProps) {
 
             {/* Paginación */}
             <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-muted-foreground">
-                Mostrando {(page - 1) * 20 + 1} -{" "}
-                {Math.min(page * 20, data.pagination.total)} de{" "}
-                {data.pagination.total} transacciones
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground">
+                  Mostrando {(page - 1) * limit + 1} -{" "}
+                  {Math.min(page * limit, data.pagination.total)} de{" "}
+                  {data.pagination.total} transacciones
+                </p>
+                <Select
+                  value={limit.toString()}
+                  onValueChange={(value) => {
+                    setLimit(Number(value));
+                    setPage(1); // Reset a página 1 cuando cambia el límite
+                  }}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Límite" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"

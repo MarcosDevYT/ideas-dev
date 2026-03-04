@@ -3,6 +3,8 @@
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { USER_LIMITS, PlanId } from "@/actions/credits/constants";
+import { hasCredits, consumeCredits } from "@/actions/credits/service";
 
 // ============================================
 // Projects Actions (CRUD)
@@ -52,6 +54,37 @@ export async function createProjectAction(
   }
 
   try {
+    // Verificar límites de usuario
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        subscription: true,
+        _count: {
+          select: { projects: true },
+        },
+      },
+    });
+
+    if (!user) return { success: false, error: "User not found" };
+
+    // Determinar plan actual (si no tiene suscripción activa o de pago, es FREE)
+    // Asumimos que si tiene subscripción activa con su respectivo price_id mapeado a BASIC/PRO, usaría ese,
+    // pero por ahora para simplificar la lógica si no es admin y no hay suscripción, es FREE.
+    let currentPlan: PlanId = "FREE";
+    if (user.isAdmin) {
+      currentPlan = "PRO";
+    } else if (user.subscription && user.subscription.status === "active") {
+      // Idealmente, aquí mapeamos stripePriceId a PlanId.
+      // Por consistencia, si tiene sub activa asumimos PRO temporalmente (hasta que Stripe se implemente completo).
+      currentPlan = "PRO";
+    }
+
+    const limit = USER_LIMITS[currentPlan].MAX_PROJECTS;
+
+    if (user._count.projects >= limit) {
+      return { success: false, error: "PROJECTS_LIMIT_REACHED" };
+    }
+
     const project = await prisma.project.create({
       data: {
         title: name,
@@ -177,14 +210,14 @@ export async function generateProjectSummaryAction(projectId: string) {
           orderBy: { createdAt: "asc" },
           take: 20,
         },
-        user: { select: { credits: true } },
       },
     });
 
     if (!project) return { error: "Project not found" };
     if (project.userId !== userId) return { error: "Unauthorized" };
 
-    if ((project.user.credits || 0) < 1) {
+    const hasSuffCredits = await hasCredits(userId, 1);
+    if (!hasSuffCredits) {
       return { error: "Insufficient credits" };
     }
 
@@ -195,16 +228,12 @@ export async function generateProjectSummaryAction(projectId: string) {
       project.messages.map((m) => ({ role: m.role, content: m.content })),
     );
 
-    await prisma.$transaction([
-      prisma.project.update({
-        where: { id: projectId },
-        data: { aiSummary: summary },
-      }),
-      prisma.user.update({
-        where: { id: userId },
-        data: { credits: { decrement: 1 } },
-      }),
-    ]);
+    await consumeCredits(userId, 1, `Resumen para proyecto: ${project.title}`);
+
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { aiSummary: summary },
+    });
 
     revalidatePath(`/chat/proyectos/${projectId}`);
 
@@ -228,14 +257,14 @@ export async function generateProjectTasksAction(projectId: string) {
       where: { id: projectId },
       include: {
         messages: { orderBy: { createdAt: "asc" }, take: 20 },
-        user: { select: { credits: true } },
       },
     });
 
     if (!project) return { error: "Project not found" };
     if (project.userId !== userId) return { error: "Unauthorized" };
 
-    if ((project.user.credits || 0) < 1) {
+    const hasSuffCredits = await hasCredits(userId, 1);
+    if (!hasSuffCredits) {
       return { error: "Insufficient credits" };
     }
 
@@ -247,12 +276,9 @@ export async function generateProjectTasksAction(projectId: string) {
       project.messages.map((m) => ({ role: m.role, content: m.content })),
     );
 
-    await prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: userId },
-        data: { credits: { decrement: 1 } },
-      });
+    await consumeCredits(userId, 1, `Tareas para proyecto: ${project.title}`);
 
+    await prisma.$transaction(async (tx) => {
       await tx.task.createMany({
         data: tasksData.map((task) => ({
           title: task.title,
@@ -368,14 +394,14 @@ export async function generateProjectResourcesAction(projectId: string) {
       where: { id: projectId },
       include: {
         messages: { orderBy: { createdAt: "asc" }, take: 20 },
-        user: { select: { credits: true } },
       },
     });
 
     if (!project) return { error: "Project not found" };
     if (project.userId !== userId) return { error: "Unauthorized" };
 
-    if ((project.user.credits || 0) < 1) {
+    const hasSuffCredits = await hasCredits(userId, 1);
+    if (!hasSuffCredits) {
       return { error: "Insufficient credits" };
     }
 
@@ -387,12 +413,9 @@ export async function generateProjectResourcesAction(projectId: string) {
       project.messages.map((m) => ({ role: m.role, content: m.content })),
     );
 
-    await prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: userId },
-        data: { credits: { decrement: 1 } },
-      });
+    await consumeCredits(userId, 1, `Recursos para proyecto: ${project.title}`);
 
+    await prisma.$transaction(async (tx) => {
       await tx.resource.createMany({
         data: resourcesData.map((res) => ({
           title: res.title,

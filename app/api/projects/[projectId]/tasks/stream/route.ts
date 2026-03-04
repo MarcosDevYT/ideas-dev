@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import { generateProjectTasksStream } from "@/lib/ai-helper";
+import { hasCredits, consumeCredits } from "@/actions/credits/service";
 
 export async function POST(
   req: Request,
@@ -15,7 +16,6 @@ export async function POST(
     where: { id: projectId },
     include: {
       messages: { orderBy: { createdAt: "asc" }, take: 20 },
-      user: { select: { credits: true } },
     },
   });
 
@@ -23,7 +23,8 @@ export async function POST(
   if (project.userId !== userId)
     return new Response("Unauthorized", { status: 401 });
 
-  if ((project.user.credits || 0) < 1) {
+  const hasSuffCredits = await hasCredits(userId, 1);
+  if (!hasSuffCredits) {
     return new Response("Insufficient credits", { status: 402 });
   }
 
@@ -54,19 +55,17 @@ export async function POST(
         .map((line) => line.trim().substring(2).trim());
 
       if (tasks.length > 0) {
-        await prisma.$transaction(async (tx) => {
-          await tx.user.update({
-            where: { id: userId },
-            data: { credits: { decrement: 1 } },
-          });
-
-          await tx.task.createMany({
-            data: tasks.map((title) => ({
-              title,
-              status: "pending",
-              projectId: projectId,
-            })),
-          });
+        await consumeCredits(
+          userId,
+          1,
+          `Tareas stream para proyecto: ${project.title}`,
+        );
+        await prisma.task.createMany({
+          data: tasks.map((title) => ({
+            title,
+            status: "pending",
+            projectId: projectId,
+          })),
         });
 
         // Note: revalidatePath might not work as expected in background tasks of Route Handlers

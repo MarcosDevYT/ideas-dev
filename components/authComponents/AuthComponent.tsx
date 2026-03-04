@@ -29,7 +29,7 @@ export const AuthComponent = ({
 }: AuthComponentProps) => {
   if (isHome) {
     return (
-      <div className="pt-2 h-14 flex items-center px-3.5">
+      <div className="h-14 flex items-center px-3.5">
         {user ? (
           <UserDropdown
             user={user as unknown as UserWithDetails}

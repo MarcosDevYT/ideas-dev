@@ -126,7 +126,7 @@ function CodeBlock({
     // Extract text content from the code element
     let code = "";
     if (children && typeof children === "object" && "props" in children) {
-      const codeElement = (children as React.ReactElement).props?.children;
+      const codeElement = (children as React.ReactElement<any>).props?.children;
       if (typeof codeElement === "string") {
         code = codeElement;
       } else if (Array.isArray(codeElement)) {
