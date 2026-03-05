@@ -1,5 +1,0 @@
-components/sidebar/Sidebar.tsx(53,64): error TS2339: Property 'credits' does not exist on type 'User'.
-components/sidebar/Sidebar.tsx(95,54): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
-  Type 'undefined' is not assignable to type 'string'.
-components/sidebar/Sidebar.tsx(103,56): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
-  Type 'undefined' is not assignable to type 'string'.

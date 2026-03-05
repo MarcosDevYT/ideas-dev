@@ -1,2 +1,0 @@
-components/sidebar/Sidebar.tsx(27,10): error TS2300: Duplicate identifier 'Badge'.
-components/sidebar/Sidebar.tsx(32,10): error TS2300: Duplicate identifier 'Badge'.

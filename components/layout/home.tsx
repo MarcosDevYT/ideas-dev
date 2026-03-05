@@ -5,6 +5,7 @@ import { FeaturesBento } from "./home/features-bento";
 import { HowItWorks } from "./home/how-it-works";
 import { TargetAudience } from "./home/target-audience";
 import { CtaFooter } from "./home/cta-footer";
+import Integrations from "./home/Integrations";
 
 interface HomeProps {
   user: UserWithDetails;
@@ -18,6 +19,7 @@ export const Home = ({ user }: HomeProps) => {
         <HeroSection />
         <FeaturesBento />
         <HowItWorks />
+        <Integrations />
         <TargetAudience />
         <CtaFooter />
       </main>

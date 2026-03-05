@@ -6,7 +6,6 @@ import { buttonVariants } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatsSection } from "./stats-section";
-import { Container } from "../container";
 
 const HeroContent = () => {
   return (
@@ -70,47 +69,11 @@ export const HeroSection = () => {
       <section className="relative min-h-screen px-6 md:px-12 2xl:px-16 pt-32 pb-32 overflow-hidden w-full flex items-center justify-center">
         {/* Elementos de fondo decorativos */}
         <FluidBackground />
+
+        <HeroContent />
       </section>
 
-      <Container className="flex flex-col items-center justify-center text-center">
-        <h2 className="text-xl md:text-2xl font-syne font-bold text-foreground mb-8">
-          Arrancá con la mejor estructura para tu stack
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full text-muted-foreground animate-in fade-in duration-700 delay-500">
-          <div className="flex flex-col items-center p-6 rounded-2xl border border-border/50 bg-card/30">
-            <span className="text-3xl font-syne font-black text-foreground mb-2">
-              IA
-            </span>
-            <span className="text-sm font-medium">
-              Asistente Copilot para armar todo el scaffolding.
-            </span>
-          </div>
-          <div className="flex flex-col items-center p-6 rounded-2xl border border-border/50 bg-card/30">
-            <span className="text-3xl font-syne font-black text-foreground mb-2">
-              Memoria
-            </span>
-            <span className="text-sm font-medium">
-              Tus proyectos vivos no pierden nunca el contexto.
-            </span>
-          </div>
-          <div className="flex flex-col items-center p-6 rounded-2xl border border-border/50 bg-card/30">
-            <span className="text-3xl font-syne font-black text-foreground mb-2">
-              Créditos
-            </span>
-            <span className="text-sm font-medium">
-              Gestión inteligente. 50 recargados gratis al mes.
-            </span>
-          </div>
-          <div className="flex flex-col items-center p-6 rounded-2xl border border-border/50 bg-card/30">
-            <span className="text-3xl font-syne font-black text-foreground mb-2">
-              Full Stack
-            </span>
-            <span className="text-sm font-medium">
-              Frontend, Backend y DevOps unificados en tu proyecto.
-            </span>
-          </div>
-        </div>
-      </Container>
+      <StatsSection />
     </>
   );
 };

@@ -178,25 +178,13 @@ const config = {
   fluidDecay: 0.98,
   trailLength: 0.8,
   stopDecay: 0.85,
-  color1: "#A0FF9B",
-  color2: "#B8FD66",
-  color3: "#0133ff",
-  color4: "#b8fff7",
-
-  colorIntensity: 1.0,
-  softness: 2.0,
-};
-
-const colorsPrimaries = {
-  color1: "#6aca00",
-  color2: " #9076f3",
-};
-
-const colorCarbon = {
   color1: "#000000",
   color2: "#0a0a0a",
   color3: "#161616",
   color4: "#363636",
+
+  colorIntensity: 1.0,
+  softness: 2.0,
 };
 
 function hexToRgb(hex: string): [number, number, number] {

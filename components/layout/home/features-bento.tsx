@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Container } from "../container";
+import Image from "next/image";
 
 const features = [
   {
@@ -40,8 +41,9 @@ const features = [
     description:
       "Convertí tu idea en un proyecto accionable con memoria. No arranques desde cero.",
     icon: FolderSync,
+    src: "bg-green",
     className: "md:col-span-1 border-border/50 bg-card/50 backdrop-blur-sm",
-    iconClassName: "text-foreground bg-background border-border/50",
+    iconClassName: "text-foreground bg-foreground/10 border-foreground/20",
     content: (
       <div className="mt-6 flex flex-wrap gap-2">
         <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold border border-primary/20">
@@ -86,11 +88,12 @@ const features = [
     description:
       "Estudiante, Semisenior o Crack. Te armamos el stack y la complejidad para que no te quedes trabado y rompas la matrix con tu código.",
     icon: Settings2,
+    src: "bg-violet",
     className:
       "md:col-span-3 bg-card/80 dark:bg-card/40 border-border/50 flex flex-col md:flex-row gap-6 items-center justify-between",
     iconClassName: "text-primary bg-background border-border/50",
     content: (
-      <div className="flex flex-wrap gap-3 mt-4 md:mt-0 w-full md:w-auto">
+      <div className="flex flex-wrap gap-3 mt-4 w-full md:w-auto">
         <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-background border border-border/50 min-w-24">
           <span className="text-xs text-muted-foreground uppercase font-bold mb-1">
             Junior
@@ -107,7 +110,7 @@ const features = [
             <div className="w-2/3 h-full bg-primary rounded-full" />
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center p-3 rounded-xl border-2 border-primary bg-primary/5 min-w-24 relative overflow-hidden">
+        <div className="flex flex-col items-center justify-center p-3 rounded-xl border-2 bg-background border-primary min-w-24 relative overflow-hidden">
           <div className="absolute inset-0 bg-primary/10 animate-pulse" />
           <span className="relative text-xs text-primary uppercase font-bold mb-1">
             Senior
@@ -143,6 +146,19 @@ export const FeaturesBento = () => {
               feature.className,
             )}
           >
+            {feature.src && (
+              <>
+                <div className="absolute inset-0">
+                  <img
+                    src={`/${feature.src}.png`}
+                    alt="Features Bento"
+                    className="object-cover size-full"
+                  />
+                </div>
+                <div className="absolute inset-0 backdrop-blur-sm" />
+              </>
+            )}
+
             <div className="relative z-10 flex flex-col h-full justify-between">
               <div>
                 <div
