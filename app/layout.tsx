@@ -26,11 +26,40 @@ const mono = JetBrains_Mono({
 // Configuración de la metadata de la aplicación
 export const metadata: Metadata = {
   title: {
-    default: `${process.env.NEXT_PUBLIC_APP_NAME}`,
-    template: `${process.env.NEXT_PUBLIC_APP_NAME} | %s`,
+    default: `${process.env.NEXT_PUBLIC_APP_NAME} | Transforma tus ideas en proyectos reales`,
+    template: `%s | ${process.env.NEXT_PUBLIC_APP_NAME}`,
   },
   description:
-    "IdeasDev es un constructor de ideas para desarrolladores, donde los usuarios generan ideas de proyectos tecnológicos mediante un chat con IA y luego pueden convertir esas ideas en proyectos vivos con memoria, contexto y seguimiento.",
+    "IdeasDev es la plataforma definitiva para desarrolladores. Genera ideas de proyectos tecnológicos con IA, construye proyectos vivos con memoria y lleva tu portfolio al siguiente nivel.",
+  keywords: [
+    "saas",
+    "ideas de proyectos",
+    "desarrollo web",
+    "inteligencia artificial",
+    "coding",
+    "software engineering",
+    "proyectos con IA",
+  ],
+  authors: [{ name: "IdeasDev Team" }],
+  openGraph: {
+    type: "website",
+    locale: "es_ES",
+    url: "https://ideasdev.com",
+    title: "IdeasDev - Constructor de Ideas para Desarrolladores",
+    description:
+      "Transforma tus ideas vagas en proyectos accionables con el poder de la IA y el seguimiento continuo.",
+    siteName: "IdeasDev",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "IdeasDev - Constructor de Ideas para Desarrolladores",
+    description:
+      "Transforma tus ideas vagas en proyectos accionables con el poder de la IA.",
+    creator: "@ideasdev",
+  },
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default async function RootLayout({

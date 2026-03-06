@@ -6,6 +6,7 @@ import { HowItWorks } from "./home/how-it-works";
 import { TargetAudience } from "./home/target-audience";
 import { CtaFooter } from "./home/cta-footer";
 import Integrations from "./home/Integrations";
+import { Footer } from "./footer";
 
 interface HomeProps {
   user: UserWithDetails;
@@ -23,6 +24,7 @@ export const Home = ({ user }: HomeProps) => {
         <TargetAudience />
         <CtaFooter />
       </main>
+      <Footer />
     </div>
   );
 };

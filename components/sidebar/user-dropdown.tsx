@@ -29,6 +29,7 @@ import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { UserWithDetails } from "@/types/user-types";
 import { SUBSCRIPTION_PLANS, PlanId } from "@/actions/credits/constants";
+import Link from "next/link";
 
 interface UserDropdownProps {
   user: UserWithDetails;
@@ -188,34 +189,22 @@ export function UserDropdown({
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem asChild>
-              <a
-                href="https://docs.ideasdev.com"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link href="/legal/terminos">
                 <FileText className="size-4 mr-2" />
                 Términos de Servicio
-              </a>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <a
-                href="https://docs.ideasdev.com/privacy"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link href="/legal/privacidad">
                 <Shield className="size-4 mr-2" />
                 Política de Privacidad
-              </a>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <a
-                href="https://help.ideasdev.com"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link href="/centro-de-ayuda">
                 <LifeBuoy className="size-4 mr-2" />
                 Centro de Ayuda
-              </a>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShowBugDialog(true)}>
               <Bug className="size-4 mr-2" />
