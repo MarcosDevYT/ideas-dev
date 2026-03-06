@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Lightbulb, Rocket, Sparkles } from "lucide-react";
 import { LogoComponent } from "../LogoComponent";
 import { Card, CardContent } from "../ui/card";
@@ -32,12 +33,15 @@ const suggestions = [
 
 export const ChatLayout = ({ user }: { user: UserWithDetails | null }) => {
   const router = useRouter();
+  const [isPending, setIsPending] = useState(false);
 
   const handleSendMessage = async (message: string) => {
     if (!user?.id) {
       toast.error("Debes iniciar sesión para usar el chat");
       return;
     }
+
+    setIsPending(true);
 
     try {
       const result = await createIdeaChatAction({
@@ -50,10 +54,12 @@ export const ChatLayout = ({ user }: { user: UserWithDetails | null }) => {
         router.push(`/chat/ideas/${result.data.id}`);
       } else {
         toast.error("Error al crear el chat");
+        setIsPending(false);
       }
     } catch (error) {
       console.error("Error creating chat:", error);
       toast.error("Error inesperado al crear el chat");
+      setIsPending(false);
     }
   };
 
@@ -82,8 +88,10 @@ export const ChatLayout = ({ user }: { user: UserWithDetails | null }) => {
             return (
               <Card
                 key={index}
-                className="py-3 group cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-                onClick={() => handleSendMessage(suggestion.prompt)}
+                className={`py-3 group transition-all hover:shadow-lg hover:border-primary/50 ${isPending ? "opacity-50 pointer-events-none" : "cursor-pointer"}`}
+                onClick={() =>
+                  !isPending && handleSendMessage(suggestion.prompt)
+                }
               >
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start gap-3">
@@ -122,8 +130,13 @@ export const ChatLayout = ({ user }: { user: UserWithDetails | null }) => {
       <div className="w-full">
         <ChatInput
           onSendMessage={handleSendMessage}
-          placeholder="Escribe tu mensaje para comenzar..."
+          placeholder={
+            isPending
+              ? "Preparando tu chat..."
+              : "Escribe tu mensaje para comenzar..."
+          }
           credits={user?.credits}
+          disabled={isPending}
         />
       </div>
     </section>

@@ -87,11 +87,11 @@ export async function createIdeaChatAction({
   initialMessage?: string;
 }) {
   try {
-    const IdeaName = await generateIdeaChatTitle(title, initialMessage);
+    const defaultTitle = title || initialMessage?.slice(0, 50) || "Nueva Idea";
 
     const ideaChat = await prisma.ideaChat.create({
       data: {
-        title: IdeaName,
+        title: defaultTitle,
         userId,
         messages: initialMessage
           ? {
@@ -106,6 +106,26 @@ export async function createIdeaChatAction({
 
     revalidatePath("/");
     revalidatePath("/chat");
+
+    // Generate accurate title in background
+    if (initialMessage) {
+      Promise.resolve().then(async () => {
+        try {
+          const generatedTitle = await generateIdeaChatTitle(
+            title,
+            initialMessage,
+          );
+          if (generatedTitle && generatedTitle.trim() !== "") {
+            await prisma.ideaChat.update({
+              where: { id: ideaChat.id },
+              data: { title: generatedTitle },
+            });
+          }
+        } catch (e) {
+          console.error("Non-blocking title generation failed:", e);
+        }
+      });
+    }
 
     return {
       success: true,
