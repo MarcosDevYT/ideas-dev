@@ -12,7 +12,7 @@ export const Container = ({ className, id, children }: ContainerProps) => {
     <section
       id={id}
       className={cn(
-        "max-w-[1920px] py-12 md:py-16 xl:py-24 px-4 md:px-8 lg:px-12 2xl:px-16",
+        "max-w-[1920px] mx-auto py-12 md:py-16 xl:py-24 px-4 md:px-8 lg:px-12 2xl:px-16",
         className,
       )}
     >
