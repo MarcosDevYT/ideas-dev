@@ -5,9 +5,9 @@ import { LogoComponent } from "../LogoComponent";
 
 export const Footer = () => {
   return (
-    <footer className="bg-card border-t border-border flex flex-col md:flex-row items-center justify-between py-12 px-4 md:px-8 lg:px-12 2xl:px-16 mt-auto">
+    <footer className="bg-card border-t border-border flex flex-col md:flex-row items-center justify-between gap-4 py-12 px-4 md:px-8 lg:px-12 2xl:px-16 mt-auto">
       <div className="flex flex-col items-center md:items-start gap-3">
-        <LogoComponent className="text-2xl" />
+        <LogoComponent navigation={true} className="text-2xl" />
         <div className="text-sm font-medium">
           © {new Date().getFullYear()} IdeasDev. Todos los derechos reservados.
         </div>

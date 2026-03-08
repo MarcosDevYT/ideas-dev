@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { USER_LIMITS, PlanId } from "@/actions/credits/constants";
 import { hasCredits, consumeCredits } from "@/actions/credits/service";
+import { getCachedData, invalidateCacheKey } from "@/actions/cache/redis-cache";
 
 // ============================================
 // Projects Actions (CRUD)
@@ -15,17 +16,20 @@ import { hasCredits, consumeCredits } from "@/actions/credits/service";
  */
 export async function getProjectsAction({ userId }: { userId: string }) {
   try {
-    const projects = await prisma.project.findMany({
-      where: { userId },
-      orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }],
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        isPinned: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    const cacheKey = `user:${userId}:projects`;
+    const projects = await getCachedData(cacheKey, async () => {
+      return await prisma.project.findMany({
+        where: { userId },
+        orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }],
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          isPinned: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
     });
 
     return {
@@ -97,6 +101,7 @@ export async function createProjectAction(
 
     revalidatePath("/chat/proyectos");
     revalidatePath(`/chat/proyectos/${project.id}`);
+    await invalidateCacheKey(`user:${session.user.id}:projects`);
 
     return { success: true, projectId: project.id };
   } catch (error) {
@@ -126,6 +131,7 @@ export async function renameProjectAction(id: string, title: string) {
 
     revalidatePath("/");
     revalidatePath("/chat/proyectos");
+    await invalidateCacheKey(`user:${session.user.id}:projects`);
 
     return {
       success: true,
@@ -155,6 +161,7 @@ export async function deleteProjectAction(id: string) {
 
     revalidatePath("/");
     revalidatePath("/chat/proyectos");
+    await invalidateCacheKey(`user:${session.user.id}:projects`);
 
     return { success: true };
   } catch (error) {
@@ -184,6 +191,7 @@ export async function toggleProjectPinAction(id: string) {
 
     revalidatePath("/");
     revalidatePath("/chat/proyectos");
+    await invalidateCacheKey(`user:${session.user.id}:projects`);
 
     return {
       success: true,

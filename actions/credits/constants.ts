@@ -36,6 +36,8 @@ export const USER_LIMITS = {
   },
 } as const;
 
+export type PlanId = keyof typeof USER_LIMITS;
+
 export const TRANSACTION_TYPES = {
   PURCHASE: "Compra",
   CONSUMPTION: "Consumo",

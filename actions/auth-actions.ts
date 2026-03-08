@@ -440,3 +440,67 @@ export const verifyEmailAction = async (email: string, token: string) => {
     return { error: "Error al verificar el email" };
   }
 };
+
+/**
+ * Función para cambiar la contraseña de un usuario autenticado desde el panel
+ * @param currentPass - Contraseña actual
+ * @param newPass - Nueva contraseña
+ * @returns Resultado del cambio
+ */
+export async function changePasswordAction(
+  currentPass: string,
+  newPass: string,
+) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "No autorizado." };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!user) {
+      return { success: false, error: "Usuario no encontrado." };
+    }
+
+    // Si el usuario se logueó por OAuth y no tiene contraseña
+    if (!user.password) {
+      return {
+        success: false,
+        error:
+          "Iniciaste sesión con un proveedor externo (e.g. Google/Github). No tienes contraseña configurable.",
+      };
+    }
+
+    // Validar contraseña actual
+    const isPasswordValid = await bcrypt.compare(currentPass, user.password);
+    if (!isPasswordValid) {
+      return { success: false, error: "La contraseña actual es incorrecta." };
+    }
+
+    if (newPass.length < 6) {
+      return {
+        success: false,
+        error: "La nueva contraseña debe tener al menos 6 caracteres.",
+      };
+    }
+
+    // Hash y guardar
+    const hashedPassword = await bcrypt.hash(newPass, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return {
+      success: false,
+      error: "Ocurrió un error inesperado al intentar cambiar la contraseña.",
+    };
+  }
+}

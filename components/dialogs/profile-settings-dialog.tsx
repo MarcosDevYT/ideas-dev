@@ -50,7 +50,7 @@ export function ProfileSettingsDialog({
           </TabsContent>
 
           <TabsContent value="configuration">
-            <ProfileAccountTab />
+            <ProfileAccountTab user={user} />
           </TabsContent>
         </Tabs>
       </DialogContent>

@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { AdminLayout } from "@/components/layout/admin/admin-layout";
+import { UserWithDetails } from "@/types/user-types";
 
 export default async function AdminRootLayout({
   children,
@@ -15,5 +16,7 @@ export default async function AdminRootLayout({
     redirect("/");
   }
 
-  return <AdminLayout user={session.user as any}>{children}</AdminLayout>;
+  return (
+    <AdminLayout user={session.user as UserWithDetails}>{children}</AdminLayout>
+  );
 }

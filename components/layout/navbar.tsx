@@ -17,7 +17,7 @@ export const Navbar = ({ user }: NavbarProps) => {
     <ScrollHeader>
       <nav className="h-full max-w-[1920px] mx-auto px-4 md:px-8 lg:px-12 2xl:px-16 flex flex-row items-center justify-between">
         <Link href="/">
-          <LogoComponent className="text-2xl" />
+          <LogoComponent navigation={true} className="text-2xl" />
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-4">

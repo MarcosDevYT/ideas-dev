@@ -61,7 +61,7 @@ export function ProjectTasksClient({
   // AI Generation Handler
   const handleGenerateTasks = async () => {
     if (credits < 1) {
-      toast.error("No tienes suficientes créditos.");
+      eventBus.emit(EVENTS.OUT_OF_CREDITS);
       return;
     }
 
@@ -73,6 +73,11 @@ export function ProjectTasksClient({
       const response = await fetch(`/api/projects/${projectId}/tasks/stream`, {
         method: "POST",
       });
+
+      if (response.status === 402) {
+        eventBus.emit(EVENTS.OUT_OF_CREDITS);
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(response.statusText);

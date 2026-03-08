@@ -5,6 +5,7 @@ import { JetBrains_Mono, Space_Grotesk, Syne } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import type { Metadata } from "next";
 import "./globals.css";
+import { baseUrl } from "@/lib/baseUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_ES",
-    url: "https://ideasdev.com",
+    url: baseUrl,
     title: "IdeasDev - Constructor de Ideas para Desarrolladores",
     description:
       "Transforma tus ideas vagas en proyectos accionables con el poder de la IA y el seguimiento continuo.",
@@ -55,7 +56,7 @@ export const metadata: Metadata = {
     title: "IdeasDev - Constructor de Ideas para Desarrolladores",
     description:
       "Transforma tus ideas vagas en proyectos accionables con el poder de la IA.",
-    creator: "@ideasdev",
+    creator: "@MarcosDev",
   },
   icons: {
     icon: "/favicon.ico",

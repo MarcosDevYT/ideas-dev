@@ -17,4 +17,5 @@ export type UserWithDetails = Prisma.UserGetPayload<{
   ideaChatsCount: number;
   projectsCount: number;
   credits: number;
+  hasPassword?: boolean;
 };

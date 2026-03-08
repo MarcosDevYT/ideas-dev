@@ -55,6 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           planCredits: true,
           extraCredits: true,
           subscription: true,
+          password: true,
           _count: {
             select: {
               ideaChats: true,
@@ -87,8 +88,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       token.ideaChatsCount = existingUser._count.ideaChats;
       token.projectsCount = existingUser._count.projects;
 
-      // Subscription
+      // Subscription & Auth
       token.subscription = existingUser.subscription;
+      token.hasPassword = !!existingUser.password;
 
       return token;
     },
@@ -114,8 +116,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.ideaChatsCount = (token.ideaChatsCount as number) || 0;
         session.user.projectsCount = (token.projectsCount as number) || 0;
 
-        // Subscription
+        // Subscription & Auth
         session.user.subscription = token.subscription as any;
+        session.user.hasPassword = token.hasPassword as boolean;
       }
 
       return session;

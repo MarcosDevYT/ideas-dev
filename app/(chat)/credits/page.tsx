@@ -5,19 +5,39 @@ import { TransactionsHistory } from "@/components/credits/transactions-history";
 import { Separator } from "@/components/ui/separator";
 import { getCreditsDataAction, getTransactionsAction } from "@/actions/credits";
 
+import { Suspense } from "react";
+import { Loader2 } from "lucide-react";
+
+async function CreditsDataWrapper({ userId }: { userId: string }) {
+  const [creditsData, transactionsData] = await Promise.all([
+    getCreditsDataAction(userId),
+    getTransactionsAction({ userId, page: 1, limit: 20 }),
+  ]);
+
+  return (
+    <>
+      <CreditsPanel initialData={creditsData} userId={userId} />
+      <Separator />
+      <TransactionsHistory initialData={transactionsData} userId={userId} />
+    </>
+  );
+}
+
+function LoadingCredits() {
+  return (
+    <div className="flex flex-col items-center justify-center p-12 text-muted-foreground w-full border rounded-lg bg-card/50">
+      <Loader2 className="h-8 w-8 animate-spin mb-4" />
+      <p>Cargando información de tus créditos...</p>
+    </div>
+  );
+}
+
 export default async function CreditsPage() {
-  // Verificar autenticación
   const session = await auth();
 
   if (!session?.user?.id) {
     redirect("/login");
   }
-
-  // Fetch paralelo - elimina waterfalls
-  const [creditsData, transactionsData] = await Promise.all([
-    getCreditsDataAction(session.user.id),
-    getTransactionsAction({ userId: session.user.id, page: 1, limit: 20 }),
-  ]);
 
   return (
     <div className="container max-w-6xl mx-auto px-4 py-8 space-y-8">
@@ -28,14 +48,9 @@ export default async function CreditsPage() {
         </p>
       </div>
 
-      <CreditsPanel initialData={creditsData} userId={session.user.id} />
-
-      <Separator />
-
-      <TransactionsHistory
-        initialData={transactionsData}
-        userId={session.user.id}
-      />
+      <Suspense fallback={<LoadingCredits />}>
+        <CreditsDataWrapper userId={session.user.id} />
+      </Suspense>
     </div>
   );
 }

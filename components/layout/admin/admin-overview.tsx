@@ -1,59 +1,67 @@
-import { Users, CreditCard, Coins, Bug } from "lucide-react";
+import {
+  Users,
+  CreditCard,
+  Sparkles,
+  Bug,
+  DollarSign,
+  UserPlus,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface AdminOverviewProps {
-  totalUsers: number;
   activeSubscriptions: number;
-  totalExtraCredits: number;
-  openBugReports: number;
+  newUsers: number;
+  aiUsage: number;
+  revenue: number;
 }
 
 const metricConfig = [
   {
-    key: "totalUsers" as const,
-    label: "Total Usuarios",
-    icon: Users,
-    color: "text-blue-500",
-    bg: "bg-blue-500/10",
-    description: "Usuarios registrados",
+    key: "revenue" as const,
+    label: "Ingresos Brutos",
+    icon: DollarSign,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+    description: "Volumen histórico total",
+    prefix: "$",
   },
   {
     key: "activeSubscriptions" as const,
     label: "Suscripciones Activas",
     icon: CreditCard,
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10",
-    description: "Planes activos en este momento",
+    color: "text-blue-500",
+    bg: "bg-blue-500/10",
+    description: "Planes recurrentes vigentes",
   },
   {
-    key: "totalExtraCredits" as const,
-    label: "Créditos Extra Totales",
-    icon: Coins,
+    key: "newUsers" as const,
+    label: "Usuarios Nuevos",
+    icon: UserPlus,
     color: "text-amber-500",
     bg: "bg-amber-500/10",
-    description: "Créditos extra entre todos los usuarios",
+    description: "Últimos 30 días",
   },
   {
-    key: "openBugReports" as const,
-    label: "Bug Reports Abiertos",
-    icon: Bug,
-    color: "text-red-500",
-    bg: "bg-red-500/10",
-    description: "Reportes pendientes de resolver",
+    key: "aiUsage" as const,
+    label: "Uso de API (IA)",
+    icon: Sparkles,
+    color: "text-purple-500",
+    bg: "bg-purple-500/10",
+    description: "Respuestas generadas por IA",
   },
 ];
 
 export function AdminOverview({
-  totalUsers,
   activeSubscriptions,
-  totalExtraCredits,
-  openBugReports,
+  newUsers,
+  aiUsage,
+  revenue,
 }: AdminOverviewProps) {
   const values: Record<string, number> = {
-    totalUsers,
     activeSubscriptions,
-    totalExtraCredits,
-    openBugReports,
+    newUsers,
+    aiUsage,
+    revenue,
   };
 
   return (
@@ -83,6 +91,7 @@ export function AdminOverview({
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold tracking-tight">
+                  {metric.prefix}
                   {values[metric.key].toLocaleString("es-AR")}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">

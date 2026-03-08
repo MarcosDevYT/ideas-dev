@@ -18,7 +18,7 @@ export default async function HelpCenterPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <Navbar user={user as UserWithDetails} />
-      <main className="flex-1 py-20 px-4">
+      <main className="flex-1">
         <Container>
           <div className="max-w-3xl mx-auto space-y-12">
             <header className="text-center space-y-4">
@@ -62,6 +62,26 @@ export default async function HelpCenterPage() {
                   Actualmente estamos trabajando en una funcionalidad de
                   exportación para que puedas llevarte el plan de acción
                   generado directamente a tu editor de código preferido.
+                </p>
+              </div>
+              <div className="p-6 rounded-2xl border border-border bg-card/50 space-y-3">
+                <h3 className="text-xl font-bold font-syne">
+                  ¿Cómo gestiono mi suscripción o cancelo?
+                </h3>
+                <p className="text-muted-foreground">
+                  Los pagos y suscripciones se gestionan a través de{" "}
+                  <a
+                    href="https://polar.sh"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Polar.sh
+                  </a>
+                  . Podés acceder al Portal de Cliente directamente desde tu
+                  perfil en IdeasDev (sección “Cuenta”) para ver tus facturas,
+                  cambiar tu método de pago o cancelar tu suscripción en
+                  cualquier momento.
                 </p>
               </div>
             </section>

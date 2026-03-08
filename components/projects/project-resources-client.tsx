@@ -74,7 +74,7 @@ export function ProjectResourcesClient({
   // AI Generation Handler
   const handleGenerateResources = async () => {
     if (credits < 1) {
-      toast.error("No tienes suficientes créditos.");
+      eventBus.emit(EVENTS.OUT_OF_CREDITS);
       return;
     }
 
@@ -90,6 +90,10 @@ export function ProjectResourcesClient({
         },
       );
 
+      if (response.status === 402) {
+        eventBus.emit(EVENTS.OUT_OF_CREDITS);
+        return;
+      }
       if (!response.ok) throw new Error(response.statusText);
       if (!response.body) throw new Error("No response body");
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MarkdownRenderer } from "@/components/chat/markdown-renderer";
 import { Sparkles, RefreshCw, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { eventBus, EVENTS } from "@/lib/events";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +35,7 @@ export function ProjectOverviewClient({
 
   const handleGenerateSummary = async () => {
     if (credits < 1) {
-      toast.error("No tienes suficientes créditos");
+      eventBus.emit(EVENTS.OUT_OF_CREDITS);
       return;
     }
 

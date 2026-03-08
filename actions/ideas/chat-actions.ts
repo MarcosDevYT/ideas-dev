@@ -7,6 +7,7 @@ import { generateIdeasChatCompletion } from "@/lib/ai-client";
 import { buildIdeasSystemPrompt } from "@/lib/prompts/ideas";
 import { hasCredits, consumeCredits } from "@/actions/credits/service";
 import { generateIdeaChatTitle } from "@/lib/ai-helper";
+import { getCachedData, invalidateCacheKey } from "@/actions/cache/redis-cache";
 
 // ============================================
 // Idea Chats CRUD
@@ -17,21 +18,24 @@ import { generateIdeaChatTitle } from "@/lib/ai-helper";
  */
 export async function getIdeaChatsAction({ userId }: { userId: string }) {
   try {
-    const ideaChats = await prisma.ideaChat.findMany({
-      where: {
-        userId,
-        messages: {
-          some: {}, // Only chats with messages
+    const cacheKey = `user:${userId}:idea-chats`;
+    const ideaChats = await getCachedData(cacheKey, async () => {
+      return await prisma.ideaChat.findMany({
+        where: {
+          userId,
+          messages: {
+            some: {}, // Only chats with messages
+          },
         },
-      },
-      orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }],
-      select: {
-        id: true,
-        title: true,
-        isPinned: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+        orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }],
+        select: {
+          id: true,
+          title: true,
+          isPinned: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
     });
 
     return {
@@ -106,6 +110,7 @@ export async function createIdeaChatAction({
 
     revalidatePath("/");
     revalidatePath("/chat");
+    await invalidateCacheKey(`user:${userId}:idea-chats`);
 
     // Generate accurate title in background
     if (initialMessage) {
@@ -162,6 +167,7 @@ export async function renameIdeaChatAction(id: string, title: string) {
 
     revalidatePath("/");
     revalidatePath("/chat");
+    await invalidateCacheKey(`user:${userId}:idea-chats`);
 
     return {
       success: true,
@@ -191,6 +197,7 @@ export async function deleteIdeaChatAction(id: string) {
 
     revalidatePath("/");
     revalidatePath("/chat");
+    await invalidateCacheKey(`user:${session.user.id}:idea-chats`);
 
     return { success: true };
   } catch (error) {
@@ -220,6 +227,7 @@ export async function toggleIdeaChatPinAction(id: string) {
 
     revalidatePath("/");
     revalidatePath("/chat");
+    await invalidateCacheKey(`user:${session.user.id}:idea-chats`);
 
     return {
       success: true,
@@ -335,6 +343,7 @@ export async function generateIdeaResponseAction({
     // Consume Credits
     await consumeCredits(userId, 1, `Idea Chat: ${ideaChatId}`);
 
+    await invalidateCacheKey(`user:${userId}:idea-chats`);
     revalidatePath(`/chat/ideas/${ideaChatId}`);
     return { success: true, chatId: ideaChatId, response: aiResponse };
   } catch (error) {

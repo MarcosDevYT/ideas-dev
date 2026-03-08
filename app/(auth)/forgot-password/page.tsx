@@ -12,7 +12,7 @@ export default function ForgotPasswordPage() {
           <span className="text-xs font-semibold text-secondary-foreground bg-secondary rounded-full px-3 py-1">
             Recuperar Contraseña
           </span>
-          <LogoComponent className="text-4xl mb-2" />
+          <LogoComponent width={100} height={100} className="text-4xl mb-2" />
         </CardHeader>
         <CardContent className="space-y-6">
           <FormEmailSend />

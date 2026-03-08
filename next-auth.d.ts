@@ -22,6 +22,8 @@ declare module "next-auth" {
       projectsCount: number;
       // Subscription
       subscription?: Subscription | null;
+      // Authenticated with local password
+      hasPassword?: boolean;
     } & DefaultSession["user"];
   }
 }
@@ -44,5 +46,7 @@ declare module "next-auth/jwt" {
     ideaChatsCount?: number;
     // Subscription
     subscription?: Subscription | null;
+    // Password
+    hasPassword?: boolean;
   }
 }

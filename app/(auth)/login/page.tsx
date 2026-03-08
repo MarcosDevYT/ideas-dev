@@ -3,6 +3,13 @@ import { GithubSignIn } from "@/components/authComponents/GitHubSignIn";
 import { GoogleSignIn } from "@/components/authComponents/GoogleSignIn";
 import { LogoComponent } from "@/components/LogoComponent";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Iniciar Sesión",
+  description:
+    "Accedé a tu cuenta de IdeasDev para continuar construyendo tus ideas con IA.",
+};
 
 export const dynamic = "force-dynamic";
 

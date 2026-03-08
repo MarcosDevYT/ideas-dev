@@ -5,11 +5,9 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
-  CreditCard,
-  Bug,
-  Coins,
-  AppWindowMac,
   Layers,
+  Bug,
+  AppWindowMac,
 } from "lucide-react";
 import { LogoComponent } from "@/components/LogoComponent";
 import { Button } from "@/components/ui/button";
@@ -32,16 +30,6 @@ const navItems = [
     label: "Usuarios",
     href: "/admin/users",
     icon: Users,
-  },
-  {
-    label: "Suscripciones",
-    href: "/admin/subscriptions",
-    icon: CreditCard,
-  },
-  {
-    label: "Créditos",
-    href: "/admin/credits",
-    icon: Coins,
   },
   {
     label: "Planes",

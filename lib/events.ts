@@ -25,4 +25,5 @@ export const eventBus = new EventBus();
 
 export const EVENTS = {
   REFRESH_SIDEBAR: "REFRESH_SIDEBAR",
+  OUT_OF_CREDITS: "OUT_OF_CREDITS",
 };

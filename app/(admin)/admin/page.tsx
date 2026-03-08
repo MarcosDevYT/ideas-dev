@@ -1,35 +1,25 @@
-import prisma from "@/lib/prisma";
 import { AdminOverview } from "@/components/layout/admin/admin-overview";
+import { getAdminStatsAction } from "@/actions/admin-stats-actions";
 
 export const metadata = {
   title: "Panel de Administración — IdeasDev",
 };
 
-async function getAdminStats() {
-  const [totalUsers, activeSubscriptions, openBugReports, creditStats] =
-    await Promise.all([
-      prisma.user.count(),
-      prisma.subscription.count({
-        where: { status: "active" },
-      }),
-      prisma.bugReport.count({
-        where: { status: "OPEN" },
-      }),
-      prisma.user.aggregate({
-        _sum: { extraCredits: true },
-      }),
-    ]);
-
-  return {
-    totalUsers,
-    activeSubscriptions,
-    openBugReports,
-    totalExtraCredits: creditStats._sum.extraCredits ?? 0,
-  };
-}
-
 export default async function AdminPage() {
-  const stats = await getAdminStats();
+  const result = await getAdminStatsAction();
+
+  if (!result.success) {
+    return (
+      <div className="flex h-[400px] flex-col items-center justify-center p-8 text-center rounded-lg border border-dashed">
+        <h2 className="text-xl font-semibold mb-2">
+          ❌ Error al cargar métricas
+        </h2>
+        <p className="text-muted-foreground">{result.error}</p>
+      </div>
+    );
+  }
+
+  const { stats } = result;
 
   return (
     <div className="space-y-6">
@@ -43,10 +33,10 @@ export default async function AdminPage() {
       </div>
 
       <AdminOverview
-        totalUsers={stats.totalUsers}
         activeSubscriptions={stats.activeSubscriptions}
-        totalExtraCredits={stats.totalExtraCredits}
-        openBugReports={stats.openBugReports}
+        newUsers={stats.newUsers}
+        aiUsage={stats.aiUsage}
+        revenue={stats.revenue}
       />
     </div>
   );
