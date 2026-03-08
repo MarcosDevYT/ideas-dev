@@ -1,85 +1,225 @@
-Quiero que hagas un recorrido durante todo el proyecto cada vez que se pide algo que se gasta un credito, se elimina un chat, se cambia el nombre o todo lo ques
+# IdeasDev 🚀
 
-# Sistema de Autenticación Reutilizable
+**IdeasDev** es una plataforma SaaS para desarrolladores que combina IA con gestión de proyectos e ideas. Generá proyectos tecnológicos con contexto continuo, gestioná tus ideas con chats con memoria, y potenciá tu flujo de trabajo con herramientas de IA integradas.
 
-Este es un sistema de autenticación básico y reutilizable construido con:
+---
 
-- **Next.js 16+**
-- **Auth.js (v5)**
-- **Prisma ORM**
-- **TailwindCSS**
-- **Shadcn UI**
+## ✨ Funcionalidades Principales
 
-Incluye autenticación con:
+### 💬 Chat con IA y Memoria
 
-- Credentials (Email/Password)
-- Google OAuth
-- Verificación de Email (Nodemailer)
-- Recuperación de contraseña
+- **Chat de Ideas** (`/chat/ideas/[id]`): Chats libres con IA para explorar y refinar ideas de proyectos
+- **Chat de Proyectos** (`/chat/proyectos/[id]`): Cada proyecto tiene su propio chat con contexto persistente, historial de mensajes y generación de resumen IA
+- **Sidebar inteligente**: Listado de proyectos e ideas con pin, renombrado y eliminación
 
-## Requisitos Previos
+### 🗂️ Gestión de Proyectos
 
-Necesitás tener cuentas y credenciales para:
+- Creación, edición y eliminación de proyectos
+- **Generación automática de tareas** de desarrollo con IA (con streaming)
+- **Generación de recursos** (links, docs, herramientas) con IA (con streaming)
+- **Resumen IA** del proyecto generado a pedido
+- Pin de proyectos para acceso rápido
 
-1.  **Google Cloud Console**: Para obtener el `AUTH_GOOGLE_ID` y `AUTH_GOOGLE_SECRET` (OAuth).
-2.  **Base de Datos**: Puede ser NeonDB (PostgreSQL serverless) o Supabase.
-3.  **Gmail/SMTP**: Para el envío de correos (Nodemailer).
+### 💳 Sistema de Créditos
 
-## Configuración Inicial
+- Créditos mensuales renovables según el plan del usuario
+- Compra de créditos extra como compra única
+- Historial de transacciones con tipos y descripciones
+- Panel de créditos con balance actual y detalles del plan
+- Modal "Out of Credits" para guiar al usuario a recargar o cambiar plan
 
-1.  **Clonar el repositorio e instalar dependencias:**
+### 🔑 Autenticación Completa
 
-    ```bash
-    npm install
-    # o
-    pnpm install
-    ```
+- Email + Contraseña con verificación de email
+- Google OAuth y GitHub OAuth
+- Recuperación de contraseña por email (Nodemailer)
+- Cambio de contraseña (solo para usuarios con credenciales, no OAuth)
+- Portal de cliente de Polar.sh (gestión de suscripción y facturas)
+- Flag `hasPassword` para diferenciar usuarios OAuth de usuarios con credenciales
 
-2.  **Configurar Variables de Entorno:**
+### 💰 Suscripciones y Pagos con Polar.sh
 
-    Copia el archivo `.env.example` a `.env` y completalo con tus datos:
+- Planes de suscripción recurrentes (FREE, BASIC, PRO, PREMIUM)
+- Paquetes de créditos de compra única
+- Checkout gestionado por Polar.sh (Merchant of Record)
+- Webhooks para procesar pagos y actualizar suscripciones en tiempo real
+- Páginas de checkout `/checkout/success` y `/checkout/error`
 
-    ```bash
-    cp .env.example .env
-    ```
+### 👤 Perfil de Usuario
 
-    - Genera el `AUTH_SECRET` ejecutando:
-      ```bash
-      npx auth secret
-      ```
-    - Completa la `DATABASE_URL` con tu cadena de conexión de Neon o Supabase.
-    - Agrega las credenciales de Google y Nodemailer.
+- Cambio de nombre y preferencias de personalización
+- Cambio de contraseña (solo usuarios con credenciales)
+- Acceso al Portal de Cliente de Polar.sh para gestionar suscripción
+- Reporte de bugs integrado
 
-3.  **Configurar la Base de Datos:**
+### 🛡️ Panel de Administración (`/admin`)
 
-    Una vez configuradas las variables, inicializa la base de datos con Prisma:
+- **Dashboard** con métricas en tiempo real: revenue, usuarios nuevos, suscripciones activas, uso de IA
+- **Gestión de Usuarios**: tabla con búsqueda, ajuste manual de créditos con razón de auditoría
+- **Gestión de Planes**: crear y editar planes de suscripción y paquetes de créditos en Polar.sh
+- **Bug Reports**: tabla de reportes con cambio de estado (OPEN, IN_PROGRESS, RESOLVED, CLOSED)
+- Métricas de admin con caché Redis (TTL 10 min)
 
-    ```bash
-    # Generar el cliente de Prisma
-    npx prisma generate
-    # o
-    pnpx prisma generate
+### ⚡ Optimización y Caché Redis
 
-    # Ejecutar la migración inicial
-    npx prisma migrate dev --name user-schema
-    # o
-    pnpx prisma migrate dev --name user-schema
-    ```
+- Caché con `@upstash/redis` en las actions de mayor carga:
+  - `user:{id}:projects` (TTL 1h) — invalidado en CRUD y toggle pin
+  - `user:{id}:idea-chats` (TTL 1h) — invalidado en CRUD y al generar respuestas
+  - `admin:users` (TTL 5 min) — invalidado al actualizar créditos
+  - `admin:dashboard-stats` (TTL 10 min)
 
-4.  **Ejecutar el Proyecto:**
+---
 
-    ```bash
-    npm run dev
-    # o
-    pnpm dev
-    ```
+## 🛠️ Stack Tecnológico
 
-## Estructura de Rutas de Autenticación
+| Categoría     | Tecnología                                 |
+| ------------- | ------------------------------------------ |
+| Framework     | Next.js 15 (App Router)                    |
+| Lenguaje      | TypeScript                                 |
+| Auth          | Auth.js v5 (NextAuth)                      |
+| Base de datos | PostgreSQL (NeonDB)                        |
+| ORM           | Prisma                                     |
+| UI            | Tailwind CSS + shadcn/ui                   |
+| Pagos         | Polar.sh                                   |
+| Caché         | Upstash Redis                              |
+| Email         | Nodemailer (Gmail SMTP)                    |
+| IA            | API externa (`multiservice-ai.vercel.app`) |
+| Fuentes       | Syne, Space Grotesk, JetBrains Mono        |
 
-Las rutas de autenticación se encuentran en `app/(auth)`:
+---
 
-- `/login`: Inicio de sesión.
-- `/register`: Registro de nuevos usuarios.
-- `/forgot-password`: Solicitud de recuperación de contraseña.
-- `/reset-password`: Formulario de cambio de contraseña.
-- `/verify-email`: Confirmación de correo electrónico.
+## 📁 Estructura de Rutas
+
+```
+app/
+├── page.tsx                          # Landing page pública
+├── (auth)/
+│   ├── login/                        # Inicio de sesión
+│   ├── register/                     # Registro
+│   ├── forgot-password/              # Recuperación de contraseña
+│   ├── reset-password/               # Nueva contraseña
+│   └── verify-email/                 # Verificación de email
+├── (chat)/
+│   ├── chat/                         # Dashboard principal + sidebar
+│   │   ├── ideas/[id]/               # Chat de idea individual
+│   │   └── proyectos/[id]/           # Chat de proyecto individual
+│   ├── credits/                      # Panel de créditos y transacciones
+│   └── checkout/
+│       ├── success/                  # Confirmación de pago exitoso
+│       └── error/                    # Error en el pago
+├── (admin)/
+│   └── admin/
+│       ├── page.tsx                  # Dashboard con métricas
+│       ├── users/                    # Gestión de usuarios
+│       ├── plans/                    # Gestión de planes y créditos
+│       └── bugs/                    # Gestión de bug reports
+├── legal/
+│   ├── terminos/                     # Términos y Condiciones
+│   └── privacidad/                   # Política de Privacidad
+├── centro-de-ayuda/                  # Centro de Ayuda (FAQ)
+└── api/
+    ├── auth/                         # NextAuth handlers
+    ├── credits/                      # Endpoint de créditos
+    ├── projects/[projectId]/
+    │   └── resources/stream/         # Streaming de recursos con IA
+    └── webhooks/polar/               # Webhook de eventos Polar.sh
+```
+
+---
+
+## ⚙️ Configuración
+
+### 1. Clonar e instalar dependencias
+
+```bash
+git clone https://github.com/MarcosDevYT/ideas-dev.git
+cd ideas-dev
+pnpm install
+```
+
+### 2. Variables de Entorno
+
+Copiá `.env.example` a `.env` y completá con tus datos:
+
+```bash
+cp .env.example .env
+```
+
+```env
+# App
+NEXT_PUBLIC_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_NAME="IdeasDev"
+
+# Auth
+AUTH_SECRET=""
+AUTH_TRUST_HOST="http://localhost:3000"
+
+# OAuth
+AUTH_GOOGLE_ID=""
+AUTH_GOOGLE_SECRET=""
+AUTH_GITHUB_ID=""
+AUTH_GITHUB_SECRET=""
+
+# Base de Datos (NeonDB u otro PostgreSQL)
+DATABASE_URL=""
+
+# Polar.sh (Pagos)
+POLAR_ACCESS_TOKEN=""
+POLAR_WEBHOOK_SECRET=""
+
+# IA
+AI_API_URL=""
+
+# Admin
+ADMIN_EMAIL=""
+
+# Redis (Upstash)
+UPSTASH_REDIS_REST_URL=""
+UPSTASH_REDIS_REST_TOKEN=""
+
+# Email (Nodemailer)
+EMAIL_SERVICE="gmail"
+EMAIL_USER=""
+EMAIL_PASS=""
+SUPPORT_EMAIL=""
+```
+
+### 3. Base de Datos
+
+```bash
+# Generar el cliente de Prisma
+pnpm prisma generate
+
+# Ejecutar migraciones
+pnpm prisma migrate dev
+```
+
+### 4. Ejecutar en desarrollo
+
+```bash
+pnpm dev
+```
+
+---
+
+## 🔐 Autorización
+
+- El panel `/admin` está protegido por middleware que verifica que el email del usuario sea igual a `ADMIN_EMAIL`.
+- Las rutas `/chat/*` requieren sesión activa — redirigen a `/login` si no hay sesión.
+- Los endpoints de API (`/api/projects/*`) validan sesión y propiedad de los recursos.
+
+---
+
+## 📄 Páginas Legales
+
+Las páginas legales están en `/legal/` y `/centro-de-ayuda/`:
+
+- **Términos y Condiciones** — Menciona a Polar.sh como Merchant of Record
+- **Política de Privacidad** — Incluye sección sobre datos de pago compartidos con Polar.sh (Ley 25.326 Argentina)
+- **Centro de Ayuda** — FAQ con preguntas sobre créditos, proyectos y gestión de suscripciones
+
+---
+
+## 👨‍💻 Autor
+
+Desarrollado por **Marcos** ([@MarcosDevYT](https://github.com/MarcosDevYT))

@@ -1,8 +1,0 @@
-# 🎨 Activos Visuales y Pendientes - IdeasDev
-
-Este documento lista los elementos que están usando placeholders o iconos genéricos y que podrían beneficiarse de versiones personalizadas para reforzar la marca.
-
-## 🖼️ Imágenes y Favicons
-- [ ] **Favicon**: Se configuró `/favicon.ico` en la metadata, pero debe asegurarse que el archivo exista en `public/`.
-- [ ] **OpenGraph Image**: Agregar una imagen de 1200x630 en `public/og-image.png` para que los enlaces se vean increíbles al compartirlos.
-- [ ] **Logo**: Revisar si el `LogoComponent` necesita una versión en SVG personalizada.
