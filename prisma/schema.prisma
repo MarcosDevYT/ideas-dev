@@ -53,8 +53,6 @@ model User {
   planCredits         Int       @default(50) @map("plan_credits") // Créditos de la suscripción mensual
   extraCredits        Int       @default(0) @map("extra_credits") // Créditos comprados o de regalo
   creditsResetAt      DateTime  @default(now()) @map("credits_reset_at") // Fecha de vencimiento de planCredits
-  isAdmin             Boolean   @default(false) @map("is_admin") // Si es administrador
-  
   accounts            Account[]
   sessions            Session[]
   passwordResetToken  PasswordResetToken[]
@@ -95,16 +93,40 @@ model VerificationToken {
 // IdeasDev Models
 // ============================================
 
+model Plan {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  price           Float    @default(0) // Precio en dólares para mostrar
+  credits         Int      // Cantidad de créditos que otorga por pago
+  isRecurring     Boolean  @default(true) // true = suscripción, false = paquete de créditos único
+  features        String[] @default([]) // Array de características para la UI (listado con tildes)
+  isPopular       Boolean  @default(false) @map("is_popular")
+  isDefaultTrial  Boolean  @default(false) @map("is_default_trial") // Marcar el plan Free por defecto
+  
+  // Referencias a Polar.sh
+  polarProductId  String?  @unique @map("polar_product_id") // Nulo en caso del plan gratuito interno
+  
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  subscriptions   Subscription[]
+
+  @@map("plans")
+}
+
 model Subscription {
   id                    String    @id @default(cuid())
   userId                String    @unique @map("user_id")
-  stripeCustomerId      String    @unique @map("stripe_customer_id")
-  stripeSubscriptionId  String?   @unique @map("stripe_subscription_id")
-  stripePriceId         String?   @map("stripe_price_id")
+  polarCustomerId       String?   @unique @map("polar_customer_id")
+  polarSubscriptionId   String?   @unique @map("polar_subscription_id")
+  polarPriceId          String?   @map("polar_price_id")
+  planId                String?   @map("plan_id")
   status                String    // active, canceled, past_due, incomplete, trialing
   currentPeriodEnd      DateTime? @map("current_period_end")
   
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                  Plan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
   
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")

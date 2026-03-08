@@ -57,7 +57,8 @@ export async function createProjectAction(
     // Verificar límites de usuario
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: {
+      select: {
+        email: true,
         subscription: true,
         _count: {
           select: { projects: true },
@@ -68,10 +69,10 @@ export async function createProjectAction(
     if (!user) return { success: false, error: "User not found" };
 
     // Determinar plan actual (si no tiene suscripción activa o de pago, es FREE)
-    // Asumimos que si tiene subscripción activa con su respectivo price_id mapeado a BASIC/PRO, usaría ese,
-    // pero por ahora para simplificar la lógica si no es admin y no hay suscripción, es FREE.
     let currentPlan: PlanId = "FREE";
-    if (user.isAdmin) {
+    const isAdmin = user.email === process.env.ADMIN_EMAIL;
+
+    if (isAdmin) {
       currentPlan = "PRO";
     } else if (user.subscription && user.subscription.status === "active") {
       // Idealmente, aquí mapeamos stripePriceId a PlanId.

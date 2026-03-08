@@ -11,58 +11,63 @@ import {
 } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
 import { Check } from "lucide-react";
+import { Plan } from "@prisma/client";
+import { getPublicPlansAction } from "@/actions/plans/plan-actions";
+import { createCheckoutSessionAction } from "@/actions/polar/checkout-actions";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useTransition } from "react";
-import { useSession } from "next-auth/react";
-import { upgradeUserPlanAction } from "@/actions/credits";
-import { SUBSCRIPTION_PLANS, PlanId } from "@/actions/credits/constants";
 
 interface UpgradePlanDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  activePlanId?: PlanId; // Plan ID passed from parent
+  activePlanId?: string;
 }
 
 export function UpgradePlanDialog({
   open,
   onOpenChange,
-  activePlanId,
+  activePlanId, // TODO: comparar con polarProductId o id
 }: UpgradePlanDialogProps) {
-  const plans = Object.values(SUBSCRIPTION_PLANS);
-  const [isPending, startTransition] = useTransition();
-  const { data: session, update } = useSession();
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const currentPriceId = session?.user?.subscription?.stripePriceId || "";
-  let sessionPlanId: PlanId = "FREE";
-  if (session?.user?.subscription?.status === "active") {
-    if (currentPriceId.includes("basic")) sessionPlanId = "BASIC";
-    else if (currentPriceId.includes("pro")) sessionPlanId = "PRO";
-    else if (currentPriceId.includes("premium")) sessionPlanId = "PREMIUM";
-  }
+  useEffect(() => {
+    if (open && plans.length === 0) {
+      getPublicPlansAction().then((res) => {
+        if (res.success && res.subscriptions) {
+          setPlans(res.subscriptions);
+        }
+        setLoading(false);
+      });
+    }
+  }, [open, plans.length]);
 
-  const currentPlanId = activePlanId || sessionPlanId;
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
-  const handleUpgrade = (planId: PlanId) => {
-    if (planId === "FREE") {
+  const handleUpgrade = async (plan: Plan) => {
+    // Si ya estamos en este plan, cerramos el dialogo
+    if (
+      activePlanId &&
+      (plan.id === activePlanId || plan.polarProductId === activePlanId)
+    ) {
       onOpenChange(false);
       return;
     }
 
-    startTransition(async () => {
-      const toastId = toast.loading("Actualizando plan...");
-      const result = await upgradeUserPlanAction(planId);
-      toast.dismiss(toastId);
+    if (!plan.polarProductId) {
+      toast.error("Este plan no tiene un producto de facturación asociado.");
+      return;
+    }
 
-      if (result.success) {
-        await update(); // Refresca la sesión en tiempo real
-        toast.success(
-          `Plan actualizado a ${SUBSCRIPTION_PLANS[planId].name} correctamente`,
-        );
-        onOpenChange(false);
-      } else {
-        toast.error("Hubo un error al actualizar el plan");
-      }
-    });
+    setCheckoutLoading(plan.id);
+    const result = await createCheckoutSessionAction(plan.polarProductId);
+
+    if (result.success && result.url) {
+      window.location.assign(result.url); // Redirige a Polar Checkout
+    } else {
+      toast.error(result.error || "No se pudo iniciar el proceso de pago");
+      setCheckoutLoading(null);
+    }
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -74,54 +79,70 @@ export function UpgradePlanDialog({
             funciones.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 max-h-[calc(100vh-200px)] overflow-y-auto px-2">
-          {plans.map((plan) => (
-            <Card
-              key={plan.name}
-              className={`mx-auto w-76 sm:w-full md:w-76 lg:w-full p-6 relative ${
-                plan.popular ? "border-primary shadow-lg" : ""
-              }`}
-            >
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold">
-                  Popular
-                </div>
-              )}
-              <div className="text-center mb-4">
-                <h3 className="text-xl font-bold">{plan.name}</h3>
-                <div className="mt-2">
-                  <span className="text-3xl font-bold">{plan.price}</span>
-                  {plan.price !== "Custom" && (
-                    <span className="text-muted-foreground">/month</span>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {plan.credits}
-                </p>
-              </div>
-              <ul className="space-y-2 mb-6">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm">
-                    <Check className="size-4 text-primary shrink-0 mt-0.5" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button
-                className="w-full mt-auto"
-                variant={plan.popular ? "default" : "outline"}
-                disabled={isPending || plan.id === currentPlanId}
-                onClick={() => handleUpgrade(plan.id)}
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <span className="text-muted-foreground animate-pulse">
+              Cargando planes...
+            </span>
+          </div>
+        ) : (
+          <div className="grid gap-4 py-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 max-h-[calc(100vh-200px)] overflow-y-auto px-2">
+            {plans.map((plan) => (
+              <Card
+                key={plan.id}
+                className={`mx-auto w-76 sm:w-full md:w-76 lg:w-full p-6 relative flex flex-col ${
+                  plan.isPopular ? "border-primary shadow-lg" : ""
+                }`}
               >
-                {plan.id === currentPlanId
-                  ? "Plan Actual"
-                  : plan.id === "FREE"
-                    ? "Cancelar suscripción"
-                    : "Mejorar"}
-              </Button>
-            </Card>
-          ))}
-        </div>
+                {plan.isPopular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold">
+                    Popular
+                  </div>
+                )}
+                <div className="text-center mb-4">
+                  <h3 className="text-xl font-bold">{plan.name}</h3>
+                  <div className="mt-2">
+                    <span className="text-3xl font-bold">${plan.price}</span>
+                    <span className="text-muted-foreground">/mes</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {plan.credits} créditos mensuales
+                  </p>
+                </div>
+                <ul className="space-y-2 mb-6">
+                  {plan.features?.map((feature) => (
+                    <li
+                      key={feature}
+                      className="flex items-start gap-2 text-sm"
+                    >
+                      <Check className="size-4 text-primary shrink-0 mt-0.5" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  className="w-full mt-auto"
+                  variant={plan.isPopular ? "default" : "outline"}
+                  disabled={
+                    plan.id === activePlanId ||
+                    plan.polarProductId === activePlanId ||
+                    checkoutLoading !== null
+                  }
+                  onClick={() => handleUpgrade(plan)}
+                >
+                  {checkoutLoading === plan.id
+                    ? "Redirigiendo..."
+                    : plan.id === activePlanId ||
+                        plan.polarProductId === activePlanId
+                      ? "Plan Actual"
+                      : plan.price === 0
+                        ? "Ver plan gratuito"
+                        : "Actualizar Plan"}
+                </Button>
+              </Card>
+            ))}
+          </div>
+        )}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cerrar

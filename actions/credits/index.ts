@@ -11,7 +11,6 @@ import {
   enrichTransactionsWithTitles,
 } from "./service";
 import { revalidatePath } from "next/cache";
-import { PlanId } from "./constants";
 
 export type CreditsData = {
   credits: number;
@@ -110,7 +109,7 @@ export async function getCreditsDataAction(
       }),
       prisma.user.findUnique({
         where: { id: targetUserId },
-        select: { isAdmin: true },
+        select: { email: true },
       }),
     ]);
 
@@ -121,7 +120,7 @@ export async function getCreditsDataAction(
       credits: credits.available,
       planCredits: credits.planCredits,
       extraCredits: credits.extraCredits,
-      isAdmin: user?.isAdmin || false,
+      isAdmin: user?.email === process.env.ADMIN_EMAIL,
       stats,
       recentTransactions: enrichedTransactions,
     };
@@ -261,53 +260,4 @@ export async function addCreditsToUserAction(
 export async function getCurrentUserId(): Promise<string | null> {
   const session = await auth();
   return session?.user?.id || null;
-}
-
-/**
- * Server Action: Simulator for upgrading user plan
- */
-export async function upgradeUserPlanAction(planId: string) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) return { success: false, error: "Unauthorized" };
-    const userId = session.user.id;
-
-    // Simulate Stripe Price ID for the plan
-    const stripePriceId = `price_mock_${planId.toLowerCase()}`;
-
-    // Upsert the subscription correctly
-    await prisma.subscription.upsert({
-      where: { userId },
-      update: {
-        status: "active",
-        stripePriceId,
-        currentPeriodEnd: new Date(
-          new Date().setMonth(new Date().getMonth() + 1),
-        ),
-      },
-      create: {
-        userId,
-        status: "active",
-        stripeCustomerId: `cus_mock_${userId}`,
-        stripeSubscriptionId: `sub_mock_${Date.now()}`,
-        stripePriceId,
-        currentPeriodEnd: new Date(
-          new Date().setMonth(new Date().getMonth() + 1),
-        ),
-      },
-    });
-
-    // Resetear los créditos inmediatamente al nuevo plan
-    const { resetMonthlyCredits } = await import("./service");
-    await resetMonthlyCredits(userId, planId.toUpperCase() as PlanId);
-
-    revalidatePath("/");
-    revalidatePath("/chat");
-    revalidatePath("/credits");
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error upgrading plan:", error);
-    return { success: false, error: "Error upgrading plan" };
-  }
 }

@@ -11,7 +11,6 @@ export type UserWithDetails = Prisma.UserGetPayload<{
     stack: true;
     planCredits: true;
     extraCredits: true;
-    isAdmin: true;
     subscription: true;
   };
 }> & {

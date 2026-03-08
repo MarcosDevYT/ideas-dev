@@ -47,12 +47,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const existingUser = await prisma.user.findUnique({
         where: { id: token.sub },
         select: {
+          id: true,
+          email: true,
           emailVerified: true,
           role: true,
           stack: true,
           planCredits: true,
           extraCredits: true,
-          isAdmin: true,
           subscription: true,
           _count: {
             select: {
@@ -66,6 +67,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!existingUser) return token;
 
       // Basic fields
+      token.email = existingUser.email;
       token.emailVerified = existingUser.emailVerified;
 
       // User configuration
@@ -77,7 +79,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       token.extraCredits = existingUser.extraCredits;
       token.credits =
         (existingUser.planCredits || 0) + (existingUser.extraCredits || 0);
-      token.isAdmin = existingUser.isAdmin;
+
+      // Admin check (Virtual field based on email)
+      token.isAdmin = existingUser.email === process.env.ADMIN_EMAIL;
 
       // Statistics
       token.ideaChatsCount = existingUser._count.ideaChats;

@@ -39,9 +39,9 @@ declare module "next-auth/jwt" {
     extraCredits?: number;
     credits?: number;
     isAdmin?: boolean;
+    projectsCount?: number;
     // Statistics
     ideaChatsCount?: number;
-    projectsCount?: number;
     // Subscription
     subscription?: Subscription | null;
   }

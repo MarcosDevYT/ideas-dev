@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import type { CreditBalance, CreditConsumption } from "@/lib/types/database";
-import { CREDIT_MESSAGES, SUBSCRIPTION_PLANS } from "./constants";
+import { CREDIT_MESSAGES } from "./constants";
 import { auth } from "@/auth";
 
 // ============================================
@@ -14,9 +14,9 @@ export async function getCreditBalance(userId: string): Promise<CreditBalance> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      email: true,
       planCredits: true,
       extraCredits: true,
-      isAdmin: true,
       creditsResetAt: true,
     },
   });
@@ -27,26 +27,30 @@ export async function getCreditBalance(userId: string): Promise<CreditBalance> {
 
   // Check if credits need to be reset (monthly)
   const now = new Date();
-  if (user.creditsResetAt && user.creditsResetAt <= now && !user.isAdmin) {
+  const isAdmin = user.email === process.env.ADMIN_EMAIL;
+
+  if (user.creditsResetAt && user.creditsResetAt <= now && !isAdmin) {
     await resetMonthlyCredits(userId);
 
     // Fetch updated credits
     const updatedUser = await prisma.user.findUnique({
       where: { id: userId },
       select: {
+        email: true,
         planCredits: true,
         extraCredits: true,
-        isAdmin: true,
         creditsResetAt: true,
       },
     });
+
+    const isUpdatedAdmin = updatedUser?.email === process.env.ADMIN_EMAIL;
 
     return {
       available:
         (updatedUser?.planCredits ?? 0) + (updatedUser?.extraCredits ?? 0),
       planCredits: updatedUser?.planCredits ?? 0,
       extraCredits: updatedUser?.extraCredits ?? 0,
-      isAdmin: updatedUser?.isAdmin ?? false,
+      isAdmin: isUpdatedAdmin,
       resetAt: updatedUser?.creditsResetAt ?? new Date(),
     };
   }
@@ -55,7 +59,7 @@ export async function getCreditBalance(userId: string): Promise<CreditBalance> {
     available: user.planCredits + user.extraCredits,
     planCredits: user.planCredits,
     extraCredits: user.extraCredits,
-    isAdmin: user.isAdmin,
+    isAdmin: isAdmin,
     resetAt: user.creditsResetAt ?? new Date(),
   };
 }
@@ -207,11 +211,14 @@ export async function addCredits(
  */
 export async function resetMonthlyCredits(
   userId: string,
-  forcePlanId?: keyof typeof SUBSCRIPTION_PLANS,
+  forcePlanId?: "FREE" | "BASIC" | "PRO" | "PREMIUM",
 ): Promise<void> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { subscription: true },
+    select: {
+      email: true,
+      subscription: true,
+    },
   });
 
   if (!user) {
@@ -219,22 +226,35 @@ export async function resetMonthlyCredits(
   }
 
   // Admins don't need resets
-  if (user.isAdmin) {
+  if (user.email === process.env.ADMIN_EMAIL) {
     return;
   }
 
   // Determine credit amount based on subscription
-  let planId: keyof typeof SUBSCRIPTION_PLANS = forcePlanId || "FREE";
+  let planId: "FREE" | "BASIC" | "PRO" | "PREMIUM" = forcePlanId || "FREE";
 
   if (!forcePlanId && user.subscription?.status === "active") {
-    // Extract plan from stripe price ID (e.g., price_mock_premium -> PREMIUM)
-    const priceId = user.subscription.stripePriceId || "";
-    if (priceId.includes("basic")) planId = "BASIC";
+    // Identificar el plan por el producto de Polar
+    const priceId = (user.subscription.polarPriceId || "").toLowerCase();
+    if (priceId.includes("basic") || priceId.includes("basico"))
+      planId = "BASIC";
     else if (priceId.includes("pro")) planId = "PRO";
     else if (priceId.includes("premium")) planId = "PREMIUM";
   }
 
-  const creditAmount = SUBSCRIPTION_PLANS[planId]?.amount || 50;
+  let creditAmount = 50;
+  let planName = "Gratis";
+
+  if (planId === "BASIC") {
+    creditAmount = 250;
+    planName = "Básico";
+  } else if (planId === "PRO") {
+    creditAmount = 500;
+    planName = "Pro";
+  } else if (planId === "PREMIUM") {
+    creditAmount = 1000;
+    planName = "Premium";
+  }
 
   // Calculate next reset date (1 month from now)
   const nextResetDate = new Date();
@@ -254,7 +274,7 @@ export async function resetMonthlyCredits(
         userId,
         amount: creditAmount,
         type: "monthly_reset",
-        description: `Recarga de plan ${SUBSCRIPTION_PLANS[planId].name}: ${creditAmount} créditos`,
+        description: `Recarga de plan ${planName}: ${creditAmount} créditos`,
       },
     }),
   ]);
@@ -267,7 +287,7 @@ export async function initializeUserCredits(userId: string): Promise<void> {
   const nextResetDate = new Date();
   nextResetDate.setMonth(nextResetDate.getMonth() + 1);
 
-  const freeCredits = SUBSCRIPTION_PLANS.FREE.amount;
+  const freeCredits = 50;
 
   await prisma.user.update({
     where: { id: userId },
@@ -348,10 +368,10 @@ export async function getCreditStats(userId: string): Promise<{
 export async function canCreateIdeaChat(userId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { isAdmin: true },
+    select: { email: true },
   });
 
-  if (user?.isAdmin) return true; // Admin sin límite
+  if (user?.email === process.env.ADMIN_EMAIL) return true; // Admin sin límite
 
   const count = await prisma.ideaChat.count({
     where: { userId },
@@ -368,7 +388,7 @@ export async function canCreateProject(userId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
-      isAdmin: true,
+      email: true,
       _count: {
         select: { projects: true },
       },
@@ -376,7 +396,7 @@ export async function canCreateProject(userId: string): Promise<boolean> {
   });
 
   if (!user) return false;
-  if (user.isAdmin) return true; // Admin sin límite
+  if (user.email === process.env.ADMIN_EMAIL) return true; // Admin sin límite
 
   return user._count.projects < 10;
 }

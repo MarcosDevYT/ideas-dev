@@ -19,7 +19,7 @@ export function ProfileOverviewTab({ user }: ProfileOverviewTabProps) {
   };
 
   const getPlanBadge = () => {
-    if (user?.isAdmin) {
+    if (user?.role === "ADMIN") {
       return <Badge variant="secondary">Admin</Badge>;
     }
     return <Badge variant="outline">Plan Gratuito</Badge>;
@@ -94,13 +94,13 @@ export function ProfileOverviewTab({ user }: ProfileOverviewTabProps) {
           <div>
             <h4 className="font-semibold">Créditos Disponibles</h4>
             <p className="text-sm text-muted-foreground">
-              {user?.isAdmin
+              {user?.role === "ADMIN"
                 ? "Ilimitados (Admin)"
                 : "Se recargan mensualmente"}
             </p>
           </div>
           <div className="text-3xl font-bold text-primary">
-            {user?.isAdmin ? "∞" : user?.credits || 0}
+            {user?.role === "ADMIN" ? "∞" : user?.credits || 0}
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ChevronUp,
   Settings,
@@ -28,7 +28,7 @@ import { ReportBugDialog } from "@/components/dialogs/report-bug-dialog";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { UserWithDetails } from "@/types/user-types";
-import { SUBSCRIPTION_PLANS, PlanId } from "@/actions/credits/constants";
+import { getPublicPlansAction } from "@/actions/plans/plan-actions";
 import Link from "next/link";
 
 interface UserDropdownProps {
@@ -45,6 +45,24 @@ export function UserDropdown({
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [showBugDialog, setShowBugDialog] = useState(false);
+  const [dbPlanName, setDbPlanName] = useState<string | null>(null);
+
+  // Fetch true plan name from DB if active subscription exists
+  useEffect(() => {
+    if (
+      user.subscription?.status === "active" &&
+      user.subscription.polarPriceId
+    ) {
+      getPublicPlansAction().then((res) => {
+        if (res.success && res.subscriptions) {
+          const plan = res.subscriptions.find(
+            (p) => p.polarProductId === user.subscription!.polarPriceId,
+          );
+          if (plan) setDbPlanName(plan.name);
+        }
+      });
+    }
+  }, [user.subscription]);
 
   const getCreditsBadgeVariant = () => {
     const credits = user.credits || 0;
@@ -63,37 +81,13 @@ export function UserDropdown({
       .slice(0, 2);
   };
 
-  const getPlanId = (): PlanId => {
-    if (user.isAdmin) return "PREMIUM";
-    if (user.subscription?.status === "active") {
-      const periodEnd = user.subscription.currentPeriodEnd;
-      if (periodEnd && new Date(periodEnd) < new Date()) {
-        return "FREE";
-      }
-      const priceId = user.subscription.stripePriceId;
-      if (priceId === "price_mock_basic") return "BASIC";
-      if (priceId === "price_mock_pro") return "PRO";
-      if (priceId === "price_mock_premium") return "PREMIUM";
-      return "PRO";
-    }
-    return "FREE";
-  };
-
   const getPlanName = () => {
-    if (user.isAdmin) return "Admin";
     if (user.subscription?.status === "active") {
       const periodEnd = user.subscription.currentPeriodEnd;
-      if (periodEnd && new Date(periodEnd) < new Date()) {
-        return "Gratis"; // Expirada
-      }
-      const priceId = user.subscription.stripePriceId;
-      if (priceId === "price_mock_basic") return SUBSCRIPTION_PLANS.BASIC.name;
-      if (priceId === "price_mock_pro") return SUBSCRIPTION_PLANS.PRO.name;
-      if (priceId === "price_mock_premium")
-        return SUBSCRIPTION_PLANS.PREMIUM.name;
-      return SUBSCRIPTION_PLANS.PRO.name; // Fallback legacy
+      if (periodEnd && new Date(periodEnd) < new Date()) return "Gratis";
+      return dbPlanName || "Subscripción";
     }
-    return SUBSCRIPTION_PLANS.FREE.name;
+    return "Gratis";
   };
 
   return (
@@ -230,7 +224,7 @@ export function UserDropdown({
       <UpgradePlanDialog
         open={showUpgradeDialog}
         onOpenChange={setShowUpgradeDialog}
-        activePlanId={getPlanId()}
+        activePlanId={user.subscription?.polarPriceId || ""}
       />
       <ReportBugDialog open={showBugDialog} onOpenChange={setShowBugDialog} />
     </>
