@@ -13,9 +13,23 @@ import { Card } from "@/components/ui/card";
 import { Check } from "lucide-react";
 import { Plan } from "@prisma/client";
 import { getPublicPlansAction } from "@/actions/plans/plan-actions";
-import { createCheckoutSessionAction } from "@/actions/polar/checkout-actions";
-import { useEffect, useState } from "react";
+import {
+  createCheckoutSessionAction,
+  cancelSubscriptionAction,
+} from "@/actions/polar/checkout-actions";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface UpgradePlanDialogProps {
   open: boolean;
@@ -28,8 +42,11 @@ export function UpgradePlanDialog({
   onOpenChange,
   activePlanId, // TODO: comparar con polarProductId o id
 }: UpgradePlanDialogProps) {
+  const router = useRouter();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
 
   useEffect(() => {
     if (open && plans.length === 0) {
@@ -44,13 +61,31 @@ export function UpgradePlanDialog({
 
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
-  const handleUpgrade = async (plan: Plan) => {
-    // Si ya estamos en este plan, cerramos el dialogo
+  const isActivePlan = (plan: Plan) => {
+    // Si se pasa "free" (o no hay plan de pago activo), identificamos el gratuito por su precio
+    if (activePlanId === "free" && plan.price === 0) return true;
+    // Si activePlanId es null/undefined u vacío y es el gratuito, también
+    if (!activePlanId && plan.price === 0) return true;
+
+    // Comparar con el ID local o el ID de Polar
     if (
       activePlanId &&
       (plan.id === activePlanId || plan.polarProductId === activePlanId)
-    ) {
+    )
+      return true;
+
+    return false;
+  };
+
+  const handleUpgrade = async (plan: Plan) => {
+    // Si ya estamos en este plan, cerramos el dialogo
+    if (isActivePlan(plan)) {
       onOpenChange(false);
+      return;
+    }
+
+    if (plan.price === 0) {
+      setShowCancelDialog(true);
       return;
     }
 
@@ -69,9 +104,32 @@ export function UpgradePlanDialog({
       setCheckoutLoading(null);
     }
   };
+
+  const handleConfirmCancel = async () => {
+    setIsCanceling(true);
+    toast.loading("Cancelando suscripción actual...", { id: "cancel-sub" });
+    const result = await cancelSubscriptionAction();
+    setIsCanceling(false);
+
+    if (result.success) {
+      toast.success(
+        "Suscripción cancelada. Tus beneficios se han reiniciado al plan gratuito.",
+        { id: "cancel-sub" },
+      );
+      setShowCancelDialog(false);
+      onOpenChange(false);
+      router.refresh();
+    } else {
+      toast.error(result.error || "Ocurrió un error al cancelar", {
+        id: "cancel-sub",
+      });
+      setShowCancelDialog(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100vh-200px)] w-full sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl">
+      <DialogContent className="max-h-[calc(100vh-200px)] w-full sm:max-w-xl md:max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-7xl">
         <DialogHeader>
           <DialogTitle>Mejora tu Plan</DialogTitle>
           <DialogDescription>
@@ -86,7 +144,7 @@ export function UpgradePlanDialog({
             </span>
           </div>
         ) : (
-          <div className="grid gap-4 py-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 max-h-[calc(100vh-200px)] overflow-y-auto px-2">
+          <div className="grid gap-4 py-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 max-h-[calc(80vh-200px)] overflow-y-auto px-2">
             {plans.map((plan) => (
               <Card
                 key={plan.id}
@@ -123,17 +181,12 @@ export function UpgradePlanDialog({
                 <Button
                   className="w-full mt-auto"
                   variant={plan.isPopular ? "default" : "outline"}
-                  disabled={
-                    plan.id === activePlanId ||
-                    plan.polarProductId === activePlanId ||
-                    checkoutLoading !== null
-                  }
+                  disabled={isActivePlan(plan) || checkoutLoading !== null}
                   onClick={() => handleUpgrade(plan)}
                 >
                   {checkoutLoading === plan.id
                     ? "Redirigiendo..."
-                    : plan.id === activePlanId ||
-                        plan.polarProductId === activePlanId
+                    : isActivePlan(plan)
                       ? "Plan Actual"
                       : plan.price === 0
                         ? "Ver plan gratuito"
@@ -149,6 +202,36 @@ export function UpgradePlanDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* AlertDialog para confirmación de Downgrade (Plan Gratuito) */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cambiar al Plan Gratuito?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción cancelará tu suscripción activa actual (si posees
+              una). Perderás tus beneficios premium inmediatamente y tus
+              créditos mensuales serán reiniciados a los del plan gratuito.
+              ¿Estás seguro que deseas continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCanceling}>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.preventDefault();
+                handleConfirmCancel();
+              }}
+              disabled={isCanceling}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCanceling
+                ? "Cancelando..."
+                : "Sí, cambiar y cancelar suscripción"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

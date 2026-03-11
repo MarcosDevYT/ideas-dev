@@ -1,6 +1,6 @@
 "use server";
 
-import { polar } from "@/lib/polar";
+import { polar, currentPolarEnvironment, polarSandbox, polarProduction } from "@/lib/polar";
 import { auth } from "@/auth";
 
 export async function getPolarProductsAction() {
@@ -40,6 +40,7 @@ export async function createSubscriptionPlanAction(data: {
   planCredits: number;
   isPopular?: boolean;
   features?: string[];
+  environment?: "sandbox" | "production";
 }) {
   const session = await auth();
   if (session?.user?.email !== process.env.ADMIN_EMAIL) {
@@ -47,18 +48,26 @@ export async function createSubscriptionPlanAction(data: {
   }
 
   try {
-    const product = await polar.products.create({
-      name: data.name,
-      description: data.description,
-      prices: [
-        {
-          priceAmount: data.priceAmount,
-          priceCurrency: "usd",
-          amountType: "fixed",
-        },
-      ],
-      recurringInterval: "month",
-    });
+    const isFree = data.priceAmount === 0;
+    const targetEnv = data.environment || currentPolarEnvironment;
+    const targetPolar = targetEnv === "production" ? polarProduction : polarSandbox;
+    let productId: string | null = null;
+
+    if (!isFree) {
+      const product = await targetPolar.products.create({
+        name: data.name,
+        description: data.description,
+        prices: [
+          {
+            priceAmount: data.priceAmount,
+            priceCurrency: "usd",
+            amountType: "fixed",
+          },
+        ],
+        recurringInterval: "month",
+      });
+      productId = product.id;
+    }
 
     // Guardar en nuestra base de datos
     const dbPlan = await prisma.plan.create({
@@ -68,13 +77,14 @@ export async function createSubscriptionPlanAction(data: {
         price: data.priceAmount / 100,
         credits: data.planCredits,
         isRecurring: true,
-        polarProductId: product.id,
+        polarProductId: productId,
+        polarEnvironment: targetEnv,
         isPopular: data.isPopular || false,
         features: data.features || [],
       },
     });
 
-    return { success: true, data: product, dbPlan };
+    return { success: true, dbPlan };
   } catch (error: unknown) {
     console.error("[Polar] Error al crear suscripción:", error);
     return {
@@ -91,6 +101,7 @@ export async function createCreditPackageAction(data: {
   extraCredits: number;
   features?: string[];
   isPopular?: boolean;
+  environment?: "sandbox" | "production";
 }) {
   const session = await auth();
   if (session?.user?.email !== process.env.ADMIN_EMAIL) {
@@ -98,17 +109,25 @@ export async function createCreditPackageAction(data: {
   }
 
   try {
-    const product = await polar.products.create({
-      name: data.name,
-      description: data.description,
-      prices: [
-        {
-          priceAmount: data.priceAmount,
-          priceCurrency: "usd",
-          amountType: "fixed",
-        },
-      ],
-    });
+    const isFree = data.priceAmount === 0;
+    const targetEnv = data.environment || currentPolarEnvironment;
+    const targetPolar = targetEnv === "production" ? polarProduction : polarSandbox;
+    let productId: string | null = null;
+
+    if (!isFree) {
+      const product = await targetPolar.products.create({
+        name: data.name,
+        description: data.description,
+        prices: [
+          {
+            priceAmount: data.priceAmount,
+            priceCurrency: "usd",
+            amountType: "fixed",
+          },
+        ],
+      });
+      productId = product.id;
+    }
 
     // Guardar en nuestra base de datos
     const dbPlan = await prisma.plan.create({
@@ -118,13 +137,14 @@ export async function createCreditPackageAction(data: {
         price: data.priceAmount / 100,
         credits: data.extraCredits,
         isRecurring: false,
-        polarProductId: product.id,
+        polarProductId: productId,
+        polarEnvironment: targetEnv,
         features: data.features || [],
         isPopular: data.isPopular || false,
       },
     });
 
-    return { success: true, data: product, dbPlan };
+    return { success: true, dbPlan };
   } catch (error: any) {
     console.error("[Polar] Error al crear paquete de créditos:", error);
     console.error("  body:", JSON.stringify(error?.body || error, null, 2));
@@ -159,6 +179,9 @@ export async function getDbPlansAction() {
 export async function getPublicPlansAction() {
   try {
     const plans = await prisma.plan.findMany({
+      where: {
+        polarEnvironment: currentPolarEnvironment,
+      },
       orderBy: { price: "asc" },
     });
 
@@ -187,15 +210,27 @@ export async function updatePlanAction(data: {
   }
 
   try {
+    const existingPlan = await prisma.plan.findUnique({
+      where: { id: data.id }
+    });
+
+    if (!existingPlan) {
+      return { success: false, error: "Plan no encontrado localmente" };
+    }
+
+    const targetPolar = existingPlan.polarEnvironment === "production" ? polarProduction : polarSandbox;
+
     // 1. Actualizar el Metadata en Polar (Nombre y Descripción son mutables)
     // Según la documentación provista, podemos usar polar.products.update()
-    await polar.products.update({
-      id: data.polarProductId,
-      productUpdate: {
-        name: data.name,
-        description: data.description,
-      },
-    });
+    if (data.polarProductId) {
+      await targetPolar.products.update({
+        id: data.polarProductId,
+        productUpdate: {
+          name: data.name,
+          description: data.description,
+        },
+      });
+    }
 
     // 2. Actualizar en nuestra Base de Datos local
     const dbPlan = await prisma.plan.update({
@@ -216,5 +251,37 @@ export async function updatePlanAction(data: {
       success: false,
       error: "No se pudo actualizar el plan.",
     };
+  }
+}
+
+export async function archivePlanAction(planId: string) {
+  const session = await auth();
+  if (session?.user?.email !== process.env.ADMIN_EMAIL) {
+    return { success: false, error: "No autorizado" };
+  }
+
+  try {
+    const plan = await prisma.plan.findUnique({ where: { id: planId } });
+    if (!plan) return { success: false, error: "Plan no encontrado" };
+
+    const targetPolar = plan.polarEnvironment === "production" ? polarProduction : polarSandbox;
+
+    if (plan.polarProductId) {
+      try {
+        await targetPolar.products.update({
+          id: plan.polarProductId,
+          productUpdate: { isArchived: true },
+        });
+      } catch (polarError) {
+        console.error("Error al archivar en Polar, continuando con borrado local:", polarError);
+      }
+    }
+
+    await prisma.plan.delete({ where: { id: planId } });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error al archivar plan:", error);
+    return { success: false, error: "Error interno al archivar el plan" };
   }
 }

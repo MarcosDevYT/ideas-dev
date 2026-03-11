@@ -75,28 +75,3 @@ export async function changePasswordAction() {
     return { error: "Failed to change password" };
   }
 }
-
-/**
- * Setup 2FA (placeholder for future implementation)
- */
-export async function setup2FAAction() {
-  try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return { error: "Unauthorized" };
-    }
-
-    // TODO: Implement 2FA setup logic
-    // 1. Generate secret
-    // 2. Generate QR code
-    // 3. Return to user for scanning
-
-    return {
-      error: "2FA setup not yet implemented",
-    };
-  } catch (error) {
-    console.error("Error setting up 2FA:", error);
-    return { error: "Failed to setup 2FA" };
-  }
-}

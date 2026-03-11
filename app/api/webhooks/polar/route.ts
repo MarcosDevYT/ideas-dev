@@ -5,14 +5,17 @@ import {
 } from "@polar-sh/sdk/webhooks";
 import prisma from "@/lib/prisma";
 
-const WEBHOOK_SECRET = process.env.POLAR_WEBHOOK_SECRET || "";
+const isDev = process.env.NODE_ENV !== "production";
+const WEBHOOK_SECRET = isDev
+  ? process.env.POLAR_SANDBOX_WEBHOOK_SECRET || ""
+  : process.env.POLAR_PRODUCTION_WEBHOOK_SECRET || "";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Handler Principal
 // ─────────────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   if (!WEBHOOK_SECRET) {
-    console.error("POLAR_WEBHOOK_SECRET no está configurado");
+    console.error(`POLAR_WEBHOOK_SECRET no está configurado para el entorno ${isDev ? 'sandbox' : 'production'}`);
     return NextResponse.json(
       { error: "Webhook secret no configurado" },
       { status: 500 },
@@ -75,6 +78,7 @@ export async function POST(req: NextRequest) {
             status: sub.status,
             currentPeriodEnd: sub.currentPeriodEnd,
             planId: planId,
+            polarEnvironment: isDev ? "sandbox" : "production",
           },
           create: {
             userId: user.id,
@@ -84,6 +88,7 @@ export async function POST(req: NextRequest) {
             status: sub.status,
             currentPeriodEnd: sub.currentPeriodEnd,
             planId: planId,
+            polarEnvironment: isDev ? "sandbox" : "production",
           },
         });
 
@@ -124,6 +129,7 @@ export async function POST(req: NextRequest) {
           data: {
             status: sub.status,
             currentPeriodEnd: sub.currentPeriodEnd,
+            polarEnvironment: isDev ? "sandbox" : "production",
           },
         });
 

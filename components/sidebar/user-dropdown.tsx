@@ -224,7 +224,11 @@ export function UserDropdown({
       <UpgradePlanDialog
         open={showUpgradeDialog}
         onOpenChange={setShowUpgradeDialog}
-        activePlanId={user.subscription?.polarPriceId || ""}
+        activePlanId={
+          user.subscription?.status === "active"
+            ? user.subscription.polarPriceId || user.subscription.planId || ""
+            : "free"
+        }
       />
       <ReportBugDialog open={showBugDialog} onOpenChange={setShowBugDialog} />
     </>

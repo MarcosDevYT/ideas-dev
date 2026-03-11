@@ -97,16 +97,17 @@ model Plan {
   id              String   @id @default(cuid())
   name            String
   description     String?
-  price           Float    @default(0) // Precio en dólares para mostrar
-  credits         Int      // Cantidad de créditos que otorga por pago
-  isRecurring     Boolean  @default(true) // true = suscripción, false = paquete de créditos único
-  features        String[] @default([]) // Array de características para la UI (listado con tildes)
+  price           Float    @default(0)
+  credits         Int
+  isRecurring     Boolean  @default(true)
+  features        String[] @default([])
   isPopular       Boolean  @default(false) @map("is_popular")
-  isDefaultTrial  Boolean  @default(false) @map("is_default_trial") // Marcar el plan Free por defecto
-  
+  isDefaultTrial  Boolean  @default(false) @map("is_default_trial")
+
   // Referencias a Polar.sh
-  polarProductId  String?  @unique @map("polar_product_id") // Nulo en caso del plan gratuito interno
-  
+  polarProductId    String?  @unique @map("polar_product_id")
+  polarEnvironment  String   @default("sandbox") @map("polar_environment") // "sandbox" | "production"
+
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -124,10 +125,11 @@ model Subscription {
   planId                String?   @map("plan_id")
   status                String    // active, canceled, past_due, incomplete, trialing
   currentPeriodEnd      DateTime? @map("current_period_end")
-  
+  polarEnvironment      String    @default("sandbox") @map("polar_environment") // "sandbox" | "production"
+
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan                  Plan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
-  
+
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
