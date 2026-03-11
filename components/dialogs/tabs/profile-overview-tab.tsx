@@ -22,7 +22,9 @@ export function ProfileOverviewTab({ user }: ProfileOverviewTabProps) {
     if (user?.role === "ADMIN") {
       return <Badge variant="secondary">Admin</Badge>;
     }
-    return <Badge variant="outline">Plan Gratuito</Badge>;
+    
+    const planName = user?.subscription?.plan?.name || "Gratuito";
+    return <Badge variant="outline">Plan {planName}</Badge>;
   };
 
   return (

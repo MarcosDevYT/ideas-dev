@@ -11,7 +11,15 @@ export type UserWithDetails = Prisma.UserGetPayload<{
     stack: true;
     planCredits: true;
     extraCredits: true;
-    subscription: true;
+    subscription: {
+      include: {
+        plan: {
+          select: {
+            name: true;
+          };
+        };
+      };
+    };
   };
 }> & {
   ideaChatsCount: number;

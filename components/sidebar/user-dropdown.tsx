@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   ChevronUp,
   Settings,
@@ -28,7 +28,6 @@ import { ReportBugDialog } from "@/components/dialogs/report-bug-dialog";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { UserWithDetails } from "@/types/user-types";
-import { getPublicPlansAction } from "@/actions/plans/plan-actions";
 import Link from "next/link";
 
 interface UserDropdownProps {
@@ -45,24 +44,6 @@ export function UserDropdown({
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [showBugDialog, setShowBugDialog] = useState(false);
-  const [dbPlanName, setDbPlanName] = useState<string | null>(null);
-
-  // Fetch true plan name from DB if active subscription exists
-  useEffect(() => {
-    if (
-      user.subscription?.status === "active" &&
-      user.subscription.polarPriceId
-    ) {
-      getPublicPlansAction().then((res) => {
-        if (res.success && res.subscriptions) {
-          const plan = res.subscriptions.find(
-            (p) => p.polarProductId === user.subscription!.polarPriceId,
-          );
-          if (plan) setDbPlanName(plan.name);
-        }
-      });
-    }
-  }, [user.subscription]);
 
   const getCreditsBadgeVariant = () => {
     const credits = user.credits || 0;
@@ -85,7 +66,7 @@ export function UserDropdown({
     if (user.subscription?.status === "active") {
       const periodEnd = user.subscription.currentPeriodEnd;
       if (periodEnd && new Date(periodEnd) < new Date()) return "Gratis";
-      return dbPlanName || "Subscripción";
+      return user.subscription.plan?.name || "Subscripción";
     }
     return "Gratis";
   };

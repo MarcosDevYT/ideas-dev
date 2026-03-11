@@ -5,6 +5,7 @@ import { MarkdownRenderer } from "./markdown-renderer";
 import { IdeaMessageCard } from "./idea-message-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
+import { sanitizeAndParseJson } from "@/lib/json-sanitizer";
 
 interface ChatMessageProps {
   role: "user" | "assistant" | "system";
@@ -23,101 +24,68 @@ export function ChatMessage({
 }: ChatMessageProps) {
   const isUser = role === "user";
 
-  // Lógica para detectar y parsear JSON
+  // State derived from parsed AI response
   let ideaData: unknown[] | null = null;
+  let displayMessage: string | null = null;
   let errorMessage: string | null = null;
   let isGeneratingJson = false;
 
   if (!isUser) {
-    // Si está haciendo streaming y no hay contenido, asumimos que está generando
     if (isStreaming && !content.trim()) {
       isGeneratingJson = true;
-    }
+    } else {
+      // Use the robust sanitizer – handles code fences, mismatched brackets,
+      // trailing commas, single quotes and more in up to 4 repair passes.
+      const result = sanitizeAndParseJson(content);
 
-    // 1. Limpieza robusta del contenido
-    // Eliminamos bloques de código markdown (```json ... ```) y espacios en blanco extra
-    let cleanContent = content.trim();
-    cleanContent = cleanContent
-      .replace(/^```json\s*/i, "") // Elimina ```json al inicio (case insensitive) y salto de linea
-      .replace(/^```\s*/, "") // Elimina ``` genérico al inicio
-      .replace(/\s*```$/, "") // Elimina ``` al final
-      .trim(); // Trim final para asegurar limpieza
+      if (result) {
+        const parsed = result.parsed as Record<string, unknown>;
 
-    // 2. Detección de intención JSON
-    const startsWithJson =
-      cleanContent.startsWith("{") || cleanContent.startsWith("[");
-
-    if (startsWithJson) {
-      try {
-        const parsed = JSON.parse(cleanContent);
-
-        // NUEVA LÓGICA: Detección de estructura mixta { message, ideas }
+        // --- Case A: Mixed response { message: string, ideas: [] } (primary format) ---
         if (
           !Array.isArray(parsed) &&
-          parsed.message &&
+          typeof parsed.message === "string" &&
           Array.isArray(parsed.ideas)
         ) {
-          // Caso 0: Respuesta mixta (Texto + Ideas)
-          if (parsed.ideas.length > 0) {
-            ideaData = parsed.ideas;
+          displayMessage = parsed.message || null;
+          if ((parsed.ideas as unknown[]).length > 0) {
+            ideaData = parsed.ideas as unknown[];
           }
-          // El mensaje de texto se renderizará siempre si existe
-          // Reemplazamos el contenido original con el mensaje parseado para el renderizado de texto
-          // Pero guardamos las ideas para renderizarlas después
-          // UN PROBLEMILLA: content es prop, no state.
-          // Solución: Usaremos una variable local para el texto a mostrar.
-        } else if (Array.isArray(parsed)) {
-          // Caso 1: Array de errores (Legacy o fallback)
-          if (parsed.length > 0 && parsed[0].error && parsed[0].mensaje) {
-            errorMessage = parsed[0].mensaje;
+        }
+        // --- Case B: Plain array of ideas (legacy) ---
+        else if (Array.isArray(parsed)) {
+          const arr = parsed as Record<string, unknown>[];
+          if (arr.length > 0 && arr[0].error && arr[0].mensaje) {
+            errorMessage = arr[0].mensaje as string;
+          } else if (arr.length > 0 && arr[0].nombre) {
+            ideaData = arr;
           }
-          // Caso 2: Array de ideas válido (Legacy)
-          else if (parsed.length > 0 && parsed[0].nombre) {
-            ideaData = parsed;
-          }
-        } else if (typeof parsed === "object" && parsed !== null) {
-          // Caso 3: Objeto único (legacy o error simple)
+        }
+        // --- Case C: Single idea object (legacy) ---
+        else if (parsed && typeof parsed === "object") {
           if (parsed.nombre) {
             ideaData = [parsed];
           } else if (parsed.error && parsed.mensaje) {
-            errorMessage = parsed.mensaje;
+            errorMessage = parsed.mensaje as string;
           }
         }
-      } catch {
-        // Parseo fallido
+      } else {
+        // Could not parse at all – during streaming treat as loading, otherwise show raw text
         if (isStreaming) {
           isGeneratingJson = true;
         }
+        // If not streaming, displayMessage falls through to the raw content below.
       }
     }
   }
 
-  // Helper para extraer el mensaje de texto si es un JSON mixto
-  const getDisplayText = () => {
-    if (isUser) return content;
-    try {
-      const clean = content
-        .trim()
-        .replace(/^```json\s*/i, "")
-        .replace(/^```\s*/, "")
-        .replace(/\s*```$/, "")
-        .trim();
-      if (clean.startsWith("{")) {
-        const parsed = JSON.parse(clean);
-        if (parsed.message) return parsed.message;
-      }
-    } catch {
-      // Si falla parseo, retornamos content original (streaming o texto)
-    }
-    // Si hay ideas y no es mixto (legacy array), no mostramos texto, solo cards.
-    // Pero si estamos testeando el nuevo formato, asumimos que si hay ideaData (legacy), el texto es el JSON raw, que no queremos mostrar.
-    // Si ideaData existe Y NO es mixto, devolvemos null?
-    if (ideaData && !content.includes('"message":')) return null;
-
-    return content;
-  };
-
-  const displayText = getDisplayText();
+  // Final display text: prefer the extracted `message` field; fall back to raw content
+  // for non-JSON assistant responses (plain text, markdown, etc.).
+  const displayText: string | null = isUser
+    ? content
+    : (displayMessage ??
+      // Only show raw content when there are no parsed ideas (legacy pure-array case)
+      (ideaData ? null : content));
 
   return (
     <div
@@ -199,7 +167,7 @@ export function ChatMessage({
             {ideaData && (
               <div className="flex flex-col gap-6 w-full animate-in fade-in duration-500">
                 {ideaData.map((idea, idx) => (
-                  <IdeaMessageCard key={idx} data={idea as any} />
+                  <IdeaMessageCard key={idx} data={idea as Parameters<typeof IdeaMessageCard>[0]["data"]} />
                 ))}
               </div>
             )}

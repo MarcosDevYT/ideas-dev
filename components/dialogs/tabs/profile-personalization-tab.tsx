@@ -42,18 +42,24 @@ export function ProfilePersonalizationTab({
   const [isLoading, setIsLoading] = useState(false);
   const [openStackPopover, setOpenStackPopover] = useState(false);
 
-  // Sincronizar estado local si el usuario cambia (ej: recarga de sesión)
+  // Sincronizar estado local solo cuando el prop 'user' cambia desde el servidor
+  // Usamos el patrón de comparación para evitar que el estado local sea sobrescrito
+  // por datos antiguos antes de que la revalidación del servidor se complete.
   useEffect(() => {
-    if (user) {
-      setRole((prev) => (prev !== (user.role || "") ? user.role || "" : prev));
-      setStack((prev) => {
-        const newStack = user.stack || [];
-        return JSON.stringify(prev) !== JSON.stringify(newStack)
-          ? newStack
-          : prev;
+    if (user && !isLoading) {
+      const dbRole = user.role || "";
+      const dbStack = user.stack || [];
+
+      // Sincronizar solo si hay una discrepancia real (datos externos cambiaron)
+      setRole(prev => (prev !== dbRole ? dbRole : prev));
+      
+      setStack(prev => {
+        const stacksAreEqual = JSON.stringify([...dbStack].sort()) === JSON.stringify([...prev].sort());
+        return stacksAreEqual ? prev : dbStack;
       });
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.role, user?.stack, isLoading]); 
 
   const handleSaveConfig = async () => {
     setIsLoading(true);

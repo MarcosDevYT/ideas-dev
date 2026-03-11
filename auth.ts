@@ -54,7 +54,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           stack: true,
           planCredits: true,
           extraCredits: true,
-          subscription: true,
+          subscription: {
+            include: {
+              plan: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
           password: true,
           _count: {
             select: {
@@ -117,7 +125,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.projectsCount = (token.projectsCount as number) || 0;
 
         // Subscription & Auth
-        session.user.subscription = token.subscription as any;
+        session.user.subscription = token.subscription as (typeof session.user.subscription);
         session.user.hasPassword = token.hasPassword as boolean;
       }
 

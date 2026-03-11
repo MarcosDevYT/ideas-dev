@@ -1,5 +1,5 @@
 import { Subscription } from "@prisma/client";
-import NextAuth, { DefaultSession } from "next-auth";
+import { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   /**
@@ -21,7 +21,7 @@ declare module "next-auth" {
       ideaChatsCount: number;
       projectsCount: number;
       // Subscription
-      subscription?: Subscription | null;
+      subscription?: (Subscription & { plan?: { name: string } | null }) | null;
       // Authenticated with local password
       hasPassword?: boolean;
     } & DefaultSession["user"];
@@ -45,7 +45,7 @@ declare module "next-auth/jwt" {
     // Statistics
     ideaChatsCount?: number;
     // Subscription
-    subscription?: Subscription | null;
+    subscription?: (Subscription & { plan?: { name: string } | null }) | null;
     // Password
     hasPassword?: boolean;
   }

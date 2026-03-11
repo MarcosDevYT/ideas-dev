@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 import {
   userConfigSchema,
   type UserConfigInput,
@@ -36,6 +37,8 @@ export async function updateUserConfigAction(values: UserConfigInput) {
         stack: true,
       },
     });
+
+    revalidatePath("/");
 
     return {
       success: true,

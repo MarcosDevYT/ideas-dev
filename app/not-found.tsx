@@ -34,9 +34,9 @@ export default function NotFound() {
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="h-12 px-8">
-            <Link href="javascript:history.back()">
+            <Link href="/chat">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Regresar
+              Regresar al chat
             </Link>
           </Button>
         </div>

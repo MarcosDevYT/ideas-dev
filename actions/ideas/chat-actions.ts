@@ -3,11 +3,15 @@
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { generateIdeasChatCompletion } from "@/lib/ai-client";
+import {
+  generateIdeasChatCompletion,
+  generateProjectChatCompletion,
+} from "@/lib/ai-client";
 import { buildIdeasSystemPrompt } from "@/lib/prompts/ideas";
 import { hasCredits, consumeCredits } from "@/actions/credits/service";
 import { generateIdeaChatTitle } from "@/lib/ai-helper";
 import { getCachedData, invalidateCacheKey } from "@/actions/cache/redis-cache";
+
 
 // ============================================
 // Idea Chats CRUD
@@ -308,7 +312,7 @@ export async function generateIdeaResponseAction({
       }
     }
 
-    // Save User Message ONLY if not generateOnly
+    // Save User Message ONLY if not generateOnly (already saved when chat was created)
     if (!generateOnly) {
       await prisma.message.create({
         data: {
@@ -319,17 +323,48 @@ export async function generateIdeaResponseAction({
       });
     }
 
+    // Fetch conversation history (saved user message is now included)
+    const history = await prisma.message.findMany({
+      where: { ideaChatId: ideaChatId! },
+      orderBy: { createdAt: "asc" },
+      take: 20, // Keep context window reasonable
+    });
+
     // Build System Prompt
     const systemPrompt = buildIdeasSystemPrompt({
       stack: user.stack,
       role: user.role,
     });
 
-    // Generate Response (Non-streaming)
-    const aiResponse = await generateIdeasChatCompletion({
-      systemMessages: [{ role: "system", content: systemPrompt }],
-      userMessage: { role: "user", content: message },
-    });
+    // ---------------------------------------------------------------
+    // Dual-endpoint strategy:
+    // - First message (only 1 entry in history = the user's message)
+    //   → /advanced-chat (optimized for initial idea generation)
+    // - Follow-up messages (history has prior AI responses)
+    //   → /chat with full history (multi-turn conversation)
+    // ---------------------------------------------------------------
+    const hasAssistantMessages = history.some((m) => m.role === "assistant");
+
+    let aiResponse: string;
+
+    if (!hasAssistantMessages) {
+      // First turn — use the ideas-specific endpoint
+      aiResponse = await generateIdeasChatCompletion({
+        systemMessages: [{ role: "system", content: systemPrompt }],
+        userMessage: { role: "user", content: message },
+      });
+    } else {
+      // Follow-up turn — pass full history so the AI knows the context
+      const messages = [
+        { role: "system" as const, content: systemPrompt },
+        ...history.map((msg) => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        })),
+      ];
+
+      aiResponse = await generateProjectChatCompletion({ messages });
+    }
 
     // Save Assistant Message
     await prisma.message.create({
