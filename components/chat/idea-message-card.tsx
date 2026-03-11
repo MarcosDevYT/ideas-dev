@@ -11,6 +11,7 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
+  CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
   Copy,
   Rocket,
   Lightbulb,
+  Loader2,
 } from "lucide-react";
 import { UpgradePlanDialog } from "@/components/dialogs/upgrade-plan-dialog";
 
@@ -47,6 +49,7 @@ export function IdeaMessageCard({ data }: IdeaMessageCardProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(JSON.stringify(data, null, 2));
@@ -54,6 +57,7 @@ export function IdeaMessageCard({ data }: IdeaMessageCardProps) {
   };
 
   const handleCreateProject = async () => {
+    setIsCreatingProject(true);
     const toastId = toast.loading("Creando proyecto...");
 
     try {
@@ -90,6 +94,8 @@ export function IdeaMessageCard({ data }: IdeaMessageCardProps) {
       console.error("💥 [IdeaMessageCard] Error inesperado:", error);
       toast.dismiss(toastId);
       toast.error("Error inesperado al crear el proyecto");
+    } finally {
+      setIsCreatingProject(false);
     }
   };
 
@@ -235,6 +241,26 @@ export function IdeaMessageCard({ data }: IdeaMessageCardProps) {
             </div>
           )}
         </CardContent>
+
+        <CardFooter>
+          <Button
+            onClick={handleCreateProject}
+            disabled={isCreatingProject}
+            className="w-full h-12 text-lg md:text-lg"
+          >
+            {isCreatingProject ? (
+              <>
+                <Loader2 className="h-6 w-6 animate-spin" />
+                Creando proyecto...
+              </>
+            ) : (
+              <>
+                <FolderPlus className="h-6 w-6" />
+                Crear proyecto
+              </>
+            )}
+          </Button>
+        </CardFooter>
       </Card>
 
       <UpgradePlanDialog

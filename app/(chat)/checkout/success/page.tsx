@@ -43,9 +43,9 @@ function CheckoutSuccessContent() {
             </Link>
           </Button>
           <Button asChild variant="outline" size="lg" className="h-12 px-8">
-            <Link href="/">
+            <Link href="/chat">
               <Home className="mr-2 h-4 w-4" />
-              Volver al inicio
+              Volver al chat
             </Link>
           </Button>
         </div>
